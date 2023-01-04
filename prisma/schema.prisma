@@ -1,0 +1,126 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  users       User[]
+  campaigns   Campaign[]
+  templates   Template[]
+  contacts    Contact[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  password  String
+  tenantId  String
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  phone     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  campaigns Campaign[]
+  templates Template[]
+  contacts  Contact[]
+}
+
+model Campaign {
+  id          String         @id @default(uuid())
+  name        String
+  type        CampaignType
+  status      CampaignStatus
+  scheduledAt DateTime?
+  userId      String
+  user        User           @relation(fields: [userId], references: [id])
+  messages    Message[]
+  createdAt   DateTime       @default(now())
+  Tenant      Tenant?        @relation(fields: [tenantId], references: [id])
+  tenantId    String?
+}
+
+enum CampaignType {
+  BROADCAST
+  TRIGGERED
+  SEQUENCE
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  FAILED
+}
+
+model Contact {
+  id        String  @id @default(uuid())
+  phone     String  @unique
+  firstName String?
+  lastName  String?
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  groups    Group[]
+  Tenant    Tenant? @relation(fields: [tenantId], references: [id])
+  tenantId  String?
+}
+
+model Template {
+  id        String           @id @default(uuid())
+  name      String
+  content   String
+  category  TemplateCategory
+  status    TemplateStatus
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  createdAt DateTime         @default(now())
+  Tenant    Tenant?          @relation(fields: [tenantId], references: [id])
+  tenantId  String?
+}
+
+enum TemplateCategory {
+  MARKETING
+  UTILITY
+  AUTHENTICATION
+}
+
+enum TemplateStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Message {
+  id         String        @id @default(uuid())
+  content    String
+  status     MessageStatus
+  campaignId String
+  campaign   Campaign      @relation(fields: [campaignId], references: [id])
+  createdAt  DateTime      @default(now())
+}
+
+enum MessageStatus {
+  DRAFT
+  SENT
+  FAILED
+}
+
+model Group {
+  id        String    @id @default(uuid())
+  name      String
+  contacts  Contact[]
+  createdAt DateTime  @default(now())
+}
