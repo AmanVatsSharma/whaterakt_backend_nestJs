@@ -8,12 +8,15 @@ export class Tenant {
   @Field()
   name: string;
 
-  @Field({ nullable: true })
-  description?: string;
+  @Field()
+  apiKey: string;
 
   @Field()
   createdAt: Date;
 
   @Field()
   updatedAt: Date;
+
+  @Field({ nullable: true })
+  deletedAt?: Date;
 } 

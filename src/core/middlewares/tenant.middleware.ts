@@ -1,12 +1,19 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { PrismaService } from '../prisma.service';
+import { PrismaService } from 'src/prisma.service';
+
+interface RequestWithUser extends Request {
+  user?: {
+    tenantId?: string;
+  };
+  tenant?: any;
+}
 
 @Injectable()
 export class TenantMiddleware implements NestMiddleware {
   constructor(private readonly prisma: PrismaService) {}
 
-  async use(req: Request, res: Response, next: NextFunction) {
+  async use(req: RequestWithUser, res: Response, next: NextFunction) {
     const tenantId = req.headers['x-tenant-id'] || req.user?.tenantId;
     
     if (!tenantId) {
@@ -21,7 +28,7 @@ export class TenantMiddleware implements NestMiddleware {
       throw new Error('Invalid tenant');
     }
 
-    req['tenant'] = tenant;
+    req.tenant = tenant;
     next();
   }
 } 

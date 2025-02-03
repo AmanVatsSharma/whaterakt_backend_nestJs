@@ -1,25 +1,41 @@
-import { INestApplication, Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit {
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  private isConnected = false;
+
   constructor() {
     super({
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL,
-        },
-      },
+      log: ['warn', 'error'],
     });
   }
 
   async onModuleInit() {
-    await this.$connect();
+    if (!this.isConnected) {
+      await this.$connect();
+      this.isConnected = true;
+    }
   }
 
-  async enableShutdownHooks(app: INestApplication) {
-    this.$on('beforeExit' as never, async () => {
-      await app.close();
+  async onModuleDestroy() {
+    if (this.isConnected) {
+      await this.$disconnect();
+      this.isConnected = false;
+    }
+  }
+
+  async cleanDatabase() {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('cleanDatabase not allowed in production');
+    }
+    
+    const models = Reflect.ownKeys(this).filter(key => {
+      return typeof this[key] === 'object' && this[key]?.deleteMany;
     });
+
+    return Promise.all(
+      models.map(modelKey => this[modelKey].deleteMany())
+    );
   }
 }  

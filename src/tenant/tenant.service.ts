@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
 import { CreateTenantInput } from './dto/create-tenant.input';
+import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
 export class TenantService {

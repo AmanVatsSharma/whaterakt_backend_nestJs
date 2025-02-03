@@ -1,5 +1,5 @@
 import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
-import { PrismaService } from '../prisma.service';
+import { PrismaService } from 'src/prisma.service';
 import { Contact } from './entities/contact.entity';
 import { CreateContactInput } from './dto/create-contact.input';
 import { UseGuards } from '@nestjs/common';
