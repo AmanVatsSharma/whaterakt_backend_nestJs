@@ -1,5 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, Inject } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
+import { GqlExecutionContext } from '@nestjs/graphql';
 
 @Injectable()
 export class RateLimitGuard implements CanActivate {
@@ -9,7 +10,8 @@ export class RateLimitGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
-      const req = context.switchToHttp().getRequest();
+      const gqlCtx = GqlExecutionContext.create(context);
+      const req = (gqlCtx.getContext()?.req) || context.switchToHttp().getRequest();
       const tenantId = req.tenant?.id;
       const key = `rate_limit:${tenantId}`;
 
