@@ -2,6 +2,7 @@ import { Resolver, Mutation, Args } from '@nestjs/graphql';
 import { AuthService } from './auth.service';
 import { AuthPayload } from './entities/auth.entity';
 import { LoginInput } from './dto/login.input';
+import { SignupInput } from './dto/signup.input';
 
 @Resolver()
 export class AuthResolver {
@@ -14,5 +15,10 @@ export class AuthResolver {
       throw new Error('Invalid credentials');
     }
     return this.authService.login(user);
+  }
+
+  @Mutation(() => AuthPayload)
+  async signup(@Args('input') input: SignupInput) {
+    return this.authService.signup(input.email, input.password, input.tenantName);
   }
 }

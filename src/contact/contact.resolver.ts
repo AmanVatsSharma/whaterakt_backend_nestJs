@@ -4,12 +4,13 @@ import { Contact } from './entities/contact.entity';
 import { CreateContactInput } from './dto/create-contact.input';
 import { UseGuards } from '@nestjs/common';
 import { TenantGuard } from '../core/guards/tenant.guard';
+import { GqlAuthGuard } from '../core/guards/gql-auth.guard';
 import { TenantAwareService } from '../core/services/tenant-aware.service';
 import { ContactService } from './contact.service';
 import { Tenant } from '../tenant/entities/tenant.entity';
 
 @Resolver(() => Contact)
-@UseGuards(TenantGuard)
+@UseGuards(GqlAuthGuard, TenantGuard)
 export class ContactResolver {
   constructor(
     private readonly contactService: ContactService,

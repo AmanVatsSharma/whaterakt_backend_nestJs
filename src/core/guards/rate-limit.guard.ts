@@ -1,12 +1,11 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
-import { Redis } from 'ioredis';
+import { Injectable, CanActivate, ExecutionContext, Inject } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class RateLimitGuard implements CanActivate {
   private readonly logger = new Logger(RateLimitGuard.name);
 
-  constructor(private readonly redis: Redis) {}
+  constructor(@Inject('REDIS_CLIENT') private readonly redis: any) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
@@ -15,7 +14,7 @@ export class RateLimitGuard implements CanActivate {
       const key = `rate_limit:${tenantId}`;
 
       // If Redis is unavailable, allow request
-      if (typeof this.redis.incr !== 'function') {
+      if (!this.redis || typeof this.redis.incr !== 'function') {
         this.logger.warn('Redis unavailable, rate limiting disabled');
         return true;
       }
