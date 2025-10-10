@@ -41,7 +41,7 @@ class EnvironmentVariables {
   @IsOptional()
   JWT_SECRET: string = 'development-secret';
 
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   @IsOptional()
   DEEPSEEK_API_URL: string;
 
@@ -56,18 +56,14 @@ export function validateConfig(config: Record<string, unknown>) {
   });
 
   const errors = validateSync(validatedConfig, {
-    skipMissingProperties: false,
+    skipMissingProperties: process.env.NODE_ENV !== 'production',
   });
 
   if (errors.length > 0) {
-    console.warn('Config validation warnings:', errors);
-    // Only throw if required fields are missing
-    const criticalErrors = errors.filter(error => 
-      !error.property.includes('WHATSAPP') && // Skip WhatsApp related errors in development
-      !error.constraints?.isOptional
-    );
-    if (criticalErrors.length > 0) {
-      throw new Error(`Config validation error: ${criticalErrors}`);
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(`Config validation error: ${JSON.stringify(errors)}`);
+    } else {
+      console.warn('Config validation warnings (non-fatal in dev):', errors);
     }
   }
 

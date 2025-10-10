@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import { PrismaService } from 'src/prisma.service';
 import { TenantAwareService } from '../core/services/tenant-aware.service';
 
 @Injectable()
@@ -9,17 +11,22 @@ export class AIService extends TenantAwareService {
 
   constructor(
     private readonly http: HttpService,
-    private readonly config: ConfigService
+    private readonly config: ConfigService,
+    protected readonly prisma: PrismaService,
   ) {
-    super();
+    super(prisma);
   }
 
   async generateReplySuggestion(context: string) {
-    const { data } = await this.http.post(this.apiUrl, {
-      prompt: `Generate WhatsApp reply for: ${context}`,
-      max_tokens: 60
-    }).toPromise();
+    const response = await firstValueFrom(
+      this.http.post(this.apiUrl, {
+        prompt: `Generate WhatsApp reply for: ${context}`,
+        max_tokens: 60,
+      })
+    );
 
-    return data.choices[0].text.trim();
+    const data: any = response.data ?? {};
+    const suggestion = data?.choices?.[0]?.text || data?.reply || data?.content || '';
+    return String(suggestion).trim();
   }
 }

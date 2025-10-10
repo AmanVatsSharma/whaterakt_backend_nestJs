@@ -11,7 +11,7 @@ export class WhatsAppProcessor {
 
   @Process('message')
   async handleMessage(job: Job<{ tenantId: string; payload: any }>) {
-    await this.whatsapp.setTenantId(job.data.tenantId);
+    this.whatsapp.setTenantId(job.data.tenantId);
     const result = await this.whatsapp.sendMessage(job.data.payload);
     this.metrics.incrementTenantMessage(job.data.tenantId);
     return result;

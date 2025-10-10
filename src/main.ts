@@ -29,9 +29,28 @@ async function bootstrap() {
       credentials: true
     });
 
-    const port = config.PORT || 3000;
-    await app.listen(port);
-    logger.log(`Application is running on: http://localhost:${port}`);
+    const requestedPort = Number(config.PORT) || 3000;
+    try {
+      await app.listen(requestedPort);
+      logger.log(`Application is running on: http://localhost:${requestedPort}`);
+    } catch (listenError) {
+      if ((listenError as any).code === 'EADDRINUSE') {
+        const fallbackPort = 3000;
+        if (requestedPort !== fallbackPort) {
+          logger.warn(`Port ${requestedPort} in use. Falling back to ${fallbackPort}`);
+          await app.listen(fallbackPort);
+          logger.log(`Application is running on: http://localhost:${fallbackPort}`);
+        } else {
+          logger.warn(`Port ${fallbackPort} in use. Falling back to an ephemeral port`);
+          await app.listen(0);
+          const address = app.getHttpServer().address();
+          const actualPort = typeof address === 'string' ? address : address?.port;
+          logger.log(`Application is running on dynamic port: http://localhost:${actualPort}`);
+        }
+      } else {
+        throw listenError;
+      }
+    }
   } catch (error) {
     logger.error(`Failed to start application: ${error.message}`);
     process.exit(1);
