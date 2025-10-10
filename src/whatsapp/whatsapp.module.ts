@@ -6,6 +6,8 @@ import { WhatsAppService } from './whatsapp.service';
 import { WhatsAppResolver } from './whatsapp.resolver';
 import { PrismaService } from 'src/prisma.service';
 import { WhatsAppProcessor } from './whatsapp.processor';
+import { WhatsAppAdapter } from './whatsapp.adapter';
+import { WhatsAppWebhookController } from './webhook.controller';
 
 @Module({
   imports: [
@@ -28,7 +30,8 @@ import { WhatsAppProcessor } from './whatsapp.processor';
       },
     }),
   ],
-  providers: [WhatsAppService, PrismaService, WhatsAppResolver, WhatsAppProcessor],
+  providers: [WhatsAppService, PrismaService, WhatsAppResolver, WhatsAppProcessor, WhatsAppAdapter],
+  controllers: [WhatsAppWebhookController],
   exports: [WhatsAppService],
 })
 export class WhatsAppModule {} 

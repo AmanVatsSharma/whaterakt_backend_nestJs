@@ -1,19 +1,20 @@
-import { Process } from '../core/decorators/queue-process.decorator';
+import { Processor, Process } from '@nestjs/bull';
 import { Job } from 'bull';
-import { WhatsAppService } from './whatsapp.service';
 import { MetricsService } from '../metrics/metrics.service';
+import { WhatsAppAdapter } from './whatsapp.adapter';
 
+@Processor('messages')
 export class WhatsAppProcessor {
   constructor(
-    private readonly whatsapp: WhatsAppService,
-    private readonly metrics: MetricsService
+    private readonly adapter: WhatsAppAdapter,
+    private readonly metrics: MetricsService,
   ) {}
 
   @Process('message')
   async handleMessage(job: Job<{ tenantId: string; payload: any }>) {
-    this.whatsapp.setTenantId(job.data.tenantId);
-    const result = await this.whatsapp.sendMessage(job.data.payload);
-    this.metrics.incrementTenantMessage(job.data.tenantId);
+    const { tenantId, payload } = job.data || { tenantId: undefined, payload: undefined };
+    const result = await this.adapter.sendMessage(payload, tenantId);
+    if (tenantId) this.metrics.incrementTenantMessage(tenantId);
     return result;
   }
-} 
+}

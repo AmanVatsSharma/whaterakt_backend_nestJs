@@ -24,7 +24,7 @@ export class WhatsAppService extends TenantAwareService {
   @Retry(3, 1000)
   async sendMessage(payload: any) {
     try {
-      await this.messageQueue.add(payload);
+      await this.messageQueue.add('message', payload);
       return { success: true };
     } catch (e) {
       this.logger.error(`Failed to queue message: ${e}`);
