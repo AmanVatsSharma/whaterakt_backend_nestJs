@@ -18,9 +18,12 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
+    command: sh -c "npx prisma migrate deploy && node dist/main.js"
 
   worker:
     build:
@@ -34,9 +37,12 @@ services:
       WHATSAPP_API_URL: ${WHATSAPP_API_URL:-http://mock-whatsapp:4000/send}
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-dev}
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
+    command: sh -c "npx prisma migrate deploy && node dist/worker.js"
 
   db:
     image: postgres:16-alpine
