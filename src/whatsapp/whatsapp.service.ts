@@ -8,6 +8,7 @@ import { BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { Retry } from '../core/decorators/retry.decorator';
 import { TenantAwareService } from '../core/services/tenant-aware.service';
+import { WhatsAppAdapter } from './whatsapp.adapter';
 
 @Injectable()
 export class WhatsAppService extends TenantAwareService {
@@ -17,6 +18,7 @@ export class WhatsAppService extends TenantAwareService {
     private readonly httpService: HttpService,
     @InjectQueue('messages') private readonly messageQueue: Queue,
     protected readonly prisma: PrismaService,
+    private readonly adapter: WhatsAppAdapter,
   ) {
     super(prisma);
   }
@@ -24,8 +26,14 @@ export class WhatsAppService extends TenantAwareService {
   @Retry(3, 1000)
   async sendMessage(payload: any) {
     try {
-      await this.messageQueue.add('message', payload);
-      return { success: true };
+      const jobData = { tenantId: this.tenantId, payload };
+      if (process.env.REDIS_HOST) {
+        await this.messageQueue.add('message', jobData);
+        return { success: true, queued: true };
+      }
+      // Fallback: send immediately without queue
+      const result = await this.adapter.sendMessage(payload, this.tenantId);
+      return { success: true, queued: false, result };
     } catch (e) {
       this.logger.error(`Failed to queue message: ${e}`);
       return { success: false };
