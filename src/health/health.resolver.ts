@@ -1,4 +1,5 @@
 import { Resolver, Query } from '@nestjs/graphql';
+import { ApiTags } from '@nestjs/swagger';
 import { Health } from './entities/health.entity';
 
 @Resolver(() => Health)
