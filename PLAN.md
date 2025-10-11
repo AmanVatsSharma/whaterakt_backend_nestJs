@@ -1,31 +1,22 @@
-# WhatsApp Marketing Platform Technical Plan
+MVP bring-up plan for NestJS WhatsApp Marketing API
 
-## Core Features
-- Multi-tenant authentication system
-- Campaign management (Scheduled broadcasts, triggers)
-- Contact/List management
-- Template management (Approved WhatsApp templates)
-- Analytics & Reporting
-- AI-powered features:
-  - Smart reply suggestions (DeepSeek integration)
-  - Conversation analysis
-  - Campaign optimization suggestions
-- API Integrations:
-  - WhatsApp Business API
-  - Payment gateways
-  - Third-party CRMs
+1) Install deps and generate Prisma (done)
+2) Fix build issues and align imports (done)
+3) Relax config validation for dev, add .env.example (done)
+4) Start app and validate runtime endpoints (GraphQL, Swagger, health, metrics)
+5) Add Prisma dev database (SQLite) and migrations if needed
+6) Smoke test queues, WhatsApp service mock, AI suggestion mock
 
-## Tech Stack
-- **Backend**: NestJS + GraphQL + Prisma
-- **Database**: PostgreSQL (with Redis for caching)
-- **AI**: DeepSeek API
-- **Infrastructure**: Docker + Kubernetes
-- **Auth**: JWT + Social Auth
+Run commands
+- npm install
+- npx prisma generate
+- npm run build
+- npm run start:dev (or npm run start)
 
-## Initial Module Structure
-1. Auth Module
-2. Campaign Module
-3. Contact Module 
-4. Template Module
-5. Analytics Module
-6. AI Integration Module 
+ENV
+- Copy .env.example to .env and adjust as needed.
+
+Notes
+- Bull redis is optional; if not set, queues run in-memory via InMemoryMessageQueue where used.
+- Swagger at /api
+- GraphQL at /graphql (Yoga), GraphiQL enabled

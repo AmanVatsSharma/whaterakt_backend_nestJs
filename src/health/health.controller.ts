@@ -1,9 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
+import { ApiOperation, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { HealthCheckService, HealthCheck } from '@nestjs/terminus';
 import { PrismaHealthIndicator } from './prisma.health';
 import { QueueHealthIndicator } from './queue.health';
 import { RedisHealthIndicator } from './redis.health';
 
+@ApiTags('Health')
 @Controller('health')
 export class HealthController {
   constructor(
@@ -14,6 +16,8 @@ export class HealthController {
   ) {}
 
   @Get()
+  @ApiOperation({ summary: 'Comprehensive health check (DB, Redis, Queue)' })
+  @ApiOkResponse({ description: 'Service health status returned' })
   @HealthCheck()
   check() {
     return this.health.check([

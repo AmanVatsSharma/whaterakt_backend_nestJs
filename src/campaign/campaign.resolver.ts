@@ -4,12 +4,14 @@ import { CreateCampaignInput } from './dto/create-campaign.input';
 import { CampaignStatus } from './enums/campaign-status.enum';
 import { UseGuards } from '@nestjs/common';
 import { TenantGuard } from '../core/guards/tenant.guard';
+import { GqlAuthGuard } from '../core/guards/gql-auth.guard';
+import { RateLimitGuard } from '../core/guards/rate-limit.guard';
 import { Tenant } from '../tenant/entities/tenant.entity';
 import { CampaignService } from './campaign.service';
 import { PrismaService } from 'src/prisma.service';
 
 @Resolver(() => Campaign)
-@UseGuards(TenantGuard)
+@UseGuards(GqlAuthGuard, TenantGuard, RateLimitGuard)
 export class CampaignResolver {
   constructor(
     private readonly prisma: PrismaService,
