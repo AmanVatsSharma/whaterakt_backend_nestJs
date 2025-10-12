@@ -3,6 +3,7 @@ import { AiService } from './ai.service';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma.service';
+import { AI_PROVIDER } from './ai.module';
 
 describe('AiService', () => {
   let service: AiService;
@@ -14,6 +15,7 @@ describe('AiService', () => {
         AiService,
         { provide: ConfigService, useValue: { get: jest.fn(() => undefined) } },
         { provide: PrismaService, useValue: {} },
+        { provide: AI_PROVIDER, useValue: { provider: 'deepseek' } },
       ],
     }).compile();
 

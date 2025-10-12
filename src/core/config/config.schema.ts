@@ -48,6 +48,46 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   DEEPSEEK_API_KEY: string;
+
+  @IsOptional()
+  @IsEnum(['deepseek', 'openai', 'anthropic', 'gemini'] as any)
+  AI_PROVIDER: 'deepseek' | 'openai' | 'anthropic' | 'gemini' = 'deepseek';
+
+  @IsString()
+  @IsOptional()
+  OPENAI_API_KEY: string;
+
+  @IsUrl({ require_tld: false })
+  @IsOptional()
+  OPENAI_API_URL: string;
+
+  @IsString()
+  @IsOptional()
+  OPENAI_MODEL: string;
+
+  @IsString()
+  @IsOptional()
+  ANTHROPIC_API_KEY: string;
+
+  @IsUrl({ require_tld: false })
+  @IsOptional()
+  ANTHROPIC_API_URL: string;
+
+  @IsString()
+  @IsOptional()
+  ANTHROPIC_MODEL: string;
+
+  @IsString()
+  @IsOptional()
+  GEMINI_API_KEY: string;
+
+  @IsUrl({ require_tld: false })
+  @IsOptional()
+  GEMINI_API_URL: string;
+
+  @IsString()
+  @IsOptional()
+  GEMINI_MODEL: string;
 }
 
 export function validateConfig(config: Record<string, unknown>) {
