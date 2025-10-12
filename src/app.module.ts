@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer } from '@nestjs/common';
+import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { YogaDriver, YogaDriverConfig } from '@graphql-yoga/nestjs';
@@ -21,6 +21,7 @@ import { MetricsModule } from './metrics/metrics.module';
 import { AIService } from './ai/ai.service';
 import { HttpModule } from '@nestjs/axios';
 import { SecurityMiddleware } from './core/middlewares/security.middleware';
+import { TenantMiddleware } from './core/middlewares/tenant.middleware';
 
 const logger = new Logger('BullModule');
 
@@ -82,6 +83,15 @@ export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(SecurityMiddleware)
+      .forRoutes('*');
+
+    // Ensure tenant is resolved for all GraphQL and API requests.
+    // Exclude provider webhooks that may not use tenant scoping.
+    consumer
+      .apply(TenantMiddleware)
+      .exclude(
+        { path: 'webhooks/whatsapp', method: RequestMethod.ALL },
+      )
       .forRoutes('*');
   }
 }

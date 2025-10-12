@@ -5,6 +5,7 @@ import { SWAGGER_CONFIG } from './core/swagger/config';
 import { AllExceptionsFilter } from './core/filters/all-exceptions.filter';
 import { validateConfig } from './core/config/config.schema';
 import { Logger } from '@nestjs/common';
+import { json } from 'express';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -15,6 +16,13 @@ async function bootstrap() {
     logger.log('Configuration validated successfully');
 
     const app = await NestFactory.create(AppModule);
+
+    // Capture raw body for webhook signature verification
+    app.use('/webhooks/whatsapp', json({
+      verify: (req: any, _res, buf) => {
+        req.rawBody = buf?.toString('utf8');
+      }
+    }));
     
     // Add Swagger documentation
     const document = SwaggerModule.createDocument(app, SWAGGER_CONFIG);
