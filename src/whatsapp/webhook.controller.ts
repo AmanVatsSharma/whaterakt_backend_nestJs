@@ -4,6 +4,7 @@ import { Request } from 'express';
 import { PrismaService } from 'src/prisma.service';
 import { MetricsService } from '../metrics/metrics.service';
 import * as crypto from 'crypto';
+import * as bcrypt from 'bcryptjs';
 
 @ApiTags('WhatsApp')
 @ApiSecurity('TenantAuth')
@@ -28,6 +29,27 @@ export class WhatsAppWebhookController {
       return tenantId;
     } catch (e: any) {
       this.logger.error(`Failed parsing WHATSAPP_TENANT_PHONE_MAP: ${e.message}`);
+      return undefined;
+    }
+  }
+
+  private async ensureSystemUserId(tenantId?: string): Promise<string | undefined> {
+    if (!tenantId) return undefined;
+    const existing = await this.prisma.user.findFirst({ where: { tenantId }, select: { id: true } });
+    if (existing?.id) return existing.id;
+    try {
+      const hashed = await bcrypt.hash(Math.random().toString(36).slice(2), 10);
+      const created = await this.prisma.user.create({
+        data: {
+          email: `system+${tenantId}@local`,
+          password: hashed,
+          tenantId,
+        },
+        select: { id: true },
+      });
+      return created.id;
+    } catch (e) {
+      this.logger.error(`Failed to create system user for tenant ${tenantId}: ${e.message}`);
       return undefined;
     }
   }
@@ -81,12 +103,20 @@ export class WhatsAppWebhookController {
             const from = m?.from;
             const text = m?.text?.body || m?.interactive?.list_reply?.title || m?.interactive?.button_reply?.title || '';
 
-            // link to contact
-            const contact = from ? await this.prisma.contact.upsert({
-              where: { phone: from },
-              update: {},
-              create: { phone: from, userId: 'system', tenantId: tenantId },
-            }) : null;
+            // link to contact (requires valid tenant and a user in that tenant)
+            let contact = null as any;
+            if (from && tenantId) {
+              const userId = await this.ensureSystemUserId(tenantId);
+              if (userId) {
+                contact = await this.prisma.contact.upsert({
+                  where: { phone: from },
+                  update: {},
+                  create: { phone: from, userId, tenantId },
+                });
+              } else {
+                this.logger.warn(`Skipping contact creation: no user found for tenant ${tenantId}`);
+              }
+            }
 
             // link to conversation by contact within tenant
             const conversation = contact ? (await this.prisma.conversation.findFirst({

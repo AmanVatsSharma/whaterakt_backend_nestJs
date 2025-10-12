@@ -13,9 +13,10 @@ export class WhatsAppProcessor {
   ) {}
 
   @Process('message')
-  async handleMessage(job: Job<{ tenantId: string; payload: any }>) {
-    const { tenantId, payload } = job.data || { tenantId: undefined, payload: undefined };
-    const result = await this.adapter.sendMessage(payload, tenantId);
+  async handleMessage(job: Job<{ tenantId: string; payload: any; campaignId?: string }>) {
+    const { tenantId, payload, campaignId } = job.data || { tenantId: undefined, payload: undefined, campaignId: undefined };
+    const { campaignId: _omit, ...waPayload } = payload || {};
+    const result = await this.adapter.sendMessage(waPayload, tenantId);
 
     try {
       const waId = (result as any)?.messages?.[0]?.id;
@@ -23,12 +24,12 @@ export class WhatsAppProcessor {
       await this.prisma.message.create({
         data: {
           waMessageId: waId,
-          content: payload?.text?.body || payload?.interactive?.body?.text || payload?.template?.name || JSON.stringify(payload).slice(0, 240),
+          content: waPayload?.text?.body || waPayload?.interactive?.body?.text || waPayload?.template?.name || JSON.stringify(waPayload).slice(0, 240),
           status: waId ? 'SENT' : 'FAILED',
           direction: 'OUTBOUND',
-          to: payload?.to,
+          to: waPayload?.to,
           tenantId,
-          campaignId: payload?.campaignId,
+          campaignId: campaignId,
         },
       });
     } catch (e) {

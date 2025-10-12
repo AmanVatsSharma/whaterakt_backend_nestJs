@@ -12,6 +12,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me}
       WHATSAPP_API_URL: ${WHATSAPP_API_URL:-http://mock-whatsapp:4000/send}
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-dev}
+      WHATSAPP_TENANT_PHONE_MAP: ${WHATSAPP_TENANT_PHONE_MAP:-{"111":"tenant-1"}}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       CORS_ORIGINS: http://localhost:5173,http://localhost:3000
@@ -36,6 +37,7 @@ services:
       REDIS_PORT: 6379
       WHATSAPP_API_URL: ${WHATSAPP_API_URL:-http://mock-whatsapp:4000/send}
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-dev}
+      WHATSAPP_TENANT_PHONE_MAP: ${WHATSAPP_TENANT_PHONE_MAP:-{"111":"tenant-1"}}
     depends_on:
       db:
         condition: service_healthy
