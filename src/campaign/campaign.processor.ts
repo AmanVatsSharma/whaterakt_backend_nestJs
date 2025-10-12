@@ -24,10 +24,18 @@ export class CampaignProcessor {
     for (let i = 0; i < batches.length; i++) {
       const batch = batches[i];
       for (const contact of batch) {
-        const payload = {
+        const payload: any = {
           to: contact.phone,
-          template: messageTemplate ?? { text: `Campaign ${campaignId}` },
+          // default to text if no template provided
+          type: messageTemplate ? 'template' : 'text',
         };
+        if (messageTemplate) {
+          payload.template = messageTemplate;
+        } else {
+          payload.text = { body: `Campaign ${campaignId}` };
+        }
+        // attach campaignId for downstream persistence
+        payload.campaignId = campaignId;
         await this.messageQueue.add('message', { tenantId, payload });
       }
       // Spread batches across time to respect per-tenant rate

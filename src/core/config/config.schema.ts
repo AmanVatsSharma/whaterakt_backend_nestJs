@@ -88,6 +88,10 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   GEMINI_MODEL: string;
+
+  @IsString()
+  @IsOptional()
+  WHATSAPP_TENANT_PHONE_MAP: string; // JSON map of phone_number_id -> tenantId
 }
 
 export function validateConfig(config: Record<string, unknown>) {
