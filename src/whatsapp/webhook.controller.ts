@@ -58,15 +58,28 @@ export class WhatsAppWebhookController {
             const waId = m?.id;
             const from = m?.from;
             const text = m?.text?.body || m?.interactive?.list_reply?.title || m?.interactive?.button_reply?.title || '';
+
+            // link to contact
+            const contact = from ? await this.prisma.contact.upsert({
+              where: { phone: from },
+              update: {},
+              create: { phone: from, userId: 'system' },
+            }) : null;
+
+            // link to conversation by contact
+            const conversation = contact ? await this.prisma.conversation.create({
+              data: { contactId: contact.id },
+            }) : null;
+
             if (waId) {
               await this.prisma.message.upsert({
                 where: { waMessageId: waId },
                 update: { content: text, direction: 'INBOUND', from },
-                create: { content: text, status: 'SENT', direction: 'INBOUND', from, waMessageId: waId },
+                create: { content: text, status: 'SENT', direction: 'INBOUND', from, waMessageId: waId, conversationId: conversation?.id },
               });
             } else {
               await this.prisma.message.create({
-                data: { content: text, status: 'SENT', direction: 'INBOUND', from },
+                data: { content: text, status: 'SENT', direction: 'INBOUND', from, conversationId: conversation?.id },
               });
             }
           }
