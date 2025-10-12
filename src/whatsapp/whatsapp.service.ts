@@ -43,6 +43,21 @@ export class WhatsAppService extends TenantAwareService {
   }
 
   private buildMessagePayload(input: any) {
+    // Media message support
+    if (input?.mediaType && input?.mediaUrl) {
+      const base = {
+        messaging_product: 'whatsapp',
+        to: input.to,
+        type: input.mediaType,
+      } as any;
+      base[input.mediaType] = {
+        link: input.mediaUrl,
+        caption: input.mediaCaption,
+        filename: input.mediaFilename,
+      };
+      return base;
+    }
+
     // If quickReplies provided, build interactive reply buttons (max 3)
     if (Array.isArray(input?.quickReplies) && input.quickReplies.length > 0) {
       const buttons = input.quickReplies.slice(0, 3).map((title: string, index: number) => ({
