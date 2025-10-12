@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TenantAwareService } from '../core/services/tenant-aware.service';
+import { PrismaService } from 'src/prisma.service';
 import { CreateCampaignInput } from './dto/create-campaign.input';
 import { CampaignStatus } from './enums/campaign-status.enum';
 import { InjectQueue } from '@nestjs/bull';
@@ -7,7 +8,10 @@ import { Queue } from 'bull';
 
 @Injectable()
 export class CampaignService extends TenantAwareService {
-  constructor(@InjectQueue('campaigns') private readonly campaignsQueue: Queue) { super(undefined as any); }
+  constructor(
+    @InjectQueue('campaigns') private readonly campaignsQueue: Queue,
+    protected readonly prisma: PrismaService,
+  ) { super(prisma); }
 
   async createCampaign(input: CreateCampaignInput) {
     return this.prisma.campaign.create({

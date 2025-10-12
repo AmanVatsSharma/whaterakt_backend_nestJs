@@ -1,6 +1,7 @@
 import { Controller, Post, Body, Headers, Logger, Get, Query, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiOkResponse, ApiSecurity, ApiQuery } from '@nestjs/swagger';
 import { Request } from 'express';
+import { PrismaService } from 'src/prisma.service';
 import * as crypto from 'crypto';
 
 @ApiTags('WhatsApp')
@@ -8,6 +9,7 @@ import * as crypto from 'crypto';
 @Controller('webhooks/whatsapp')
 export class WhatsAppWebhookController {
   private readonly logger = new Logger(WhatsAppWebhookController.name);
+  constructor(private readonly prisma: PrismaService) {}
 
   @Get()
   @ApiOperation({ summary: 'WhatsApp webhook verification' })
@@ -43,7 +45,38 @@ export class WhatsAppWebhookController {
       }
 
       this.logger.log(`Received WhatsApp webhook: ${JSON.stringify({ signature, body })}`);
-      // TODO: parse events, update message status, persist inbound messages
+      // Minimal parser for inbound messages and status updates
+      const entries = body?.entry ?? [];
+      for (const entry of entries) {
+        const changes = entry?.changes ?? [];
+        for (const change of changes) {
+          const value = change?.value || {};
+          const messages = value?.messages || [];
+          const statuses = value?.statuses || [];
+
+          for (const m of messages) {
+            const waId = m?.id;
+            const from = m?.from;
+            const text = m?.text?.body || m?.interactive?.list_reply?.title || m?.interactive?.button_reply?.title || '';
+            await this.prisma.message.upsert({
+              where: { waMessageId: waId || 'na' },
+              update: { content: text, direction: 'INBOUND', from },
+              create: { content: text, status: 'SENT', direction: 'INBOUND', from, waMessageId: waId },
+            });
+          }
+
+          for (const s of statuses) {
+            const waId = s?.id;
+            const status = s?.status?.toUpperCase();
+            if (waId) {
+              await this.prisma.message.updateMany({
+                where: { waMessageId: waId },
+                data: { status: status === 'DELIVERED' || status === 'READ' ? 'SENT' : 'FAILED' },
+              });
+            }
+          }
+        }
+      }
       return { ok: true };
     } catch (e: any) {
       this.logger.error(`Webhook processing error: ${e.message}`);

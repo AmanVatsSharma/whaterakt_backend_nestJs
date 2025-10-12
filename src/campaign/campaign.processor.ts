@@ -17,9 +17,12 @@ export class CampaignProcessor {
     const { tenantId, campaignId, messageTemplate } = job.data;
 
     const contacts = await this.prisma.contact.findMany({ where: { tenantId } });
-    const batches = this.chunk(contacts, 100);
+    const perTenantRate = Number(process.env.CAMPAIGN_RATE_PER_MIN || 600); // messages/minute
+    const batchSize = Math.max(1, Math.min(100, Math.floor(perTenantRate / 6))); // ~10s windows
+    const batches = this.chunk(contacts, batchSize);
 
-    for (const batch of batches) {
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i];
       for (const contact of batch) {
         const payload = {
           to: contact.phone,
@@ -27,6 +30,8 @@ export class CampaignProcessor {
         };
         await this.messageQueue.add('message', { tenantId, payload });
       }
+      // Spread batches across time to respect per-tenant rate
+      if (i < batches.length - 1) await new Promise((r) => setTimeout(r, 10_000));
     }
 
     this.logger.log(`Dispatched campaign ${campaignId} for tenant ${tenantId} to ${contacts.length} contacts`);
