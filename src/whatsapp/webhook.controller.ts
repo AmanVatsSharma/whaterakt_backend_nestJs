@@ -2,6 +2,7 @@ import { Controller, Post, Body, Headers, Logger, Get, Query, Req } from '@nestj
 import { ApiTags, ApiOperation, ApiOkResponse, ApiSecurity, ApiQuery } from '@nestjs/swagger';
 import { Request } from 'express';
 import { PrismaService } from 'src/prisma.service';
+import { MetricsService } from '../metrics/metrics.service';
 import * as crypto from 'crypto';
 
 @ApiTags('WhatsApp')
@@ -9,7 +10,7 @@ import * as crypto from 'crypto';
 @Controller('webhooks/whatsapp')
 export class WhatsAppWebhookController {
   private readonly logger = new Logger(WhatsAppWebhookController.name);
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly metrics: MetricsService) {}
 
   @Get()
   @ApiOperation({ summary: 'WhatsApp webhook verification' })
@@ -92,6 +93,8 @@ export class WhatsAppWebhookController {
                 where: { waMessageId: waId },
                 data: { status: status === 'DELIVERED' || status === 'READ' ? 'SENT' : 'FAILED' },
               });
+              const msg = await this.prisma.message.findFirst({ where: { waMessageId: waId } });
+              if (msg?.campaignId) this.metrics.incrementCampaignDelivery(msg.campaignId, (status === 'READ' ? 'READ' : status === 'DELIVERED' ? 'DELIVERED' : 'FAILED') as any);
             }
           }
         }

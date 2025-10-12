@@ -61,6 +61,45 @@ export class WhatsAppService extends TenantAwareService {
       };
     }
 
+    // If listSections provided, build interactive list payload
+    if (Array.isArray(input?.listSections) && input.listSections.length > 0) {
+      return {
+        messaging_product: 'whatsapp',
+        to: input.to,
+        type: 'interactive',
+        interactive: {
+          type: 'list',
+          body: { text: input.message || 'Choose an option:' },
+          action: {
+            button: 'Select',
+            sections: input.listSections.map((s: any) => ({
+              title: s.title,
+              rows: s.rows.map((r: any) => ({ id: r.id, title: r.title, description: r.description }))
+            }))
+          }
+        }
+      };
+    }
+
+    // If templateName provided, build template payload
+    if (input?.templateName) {
+      return {
+        messaging_product: 'whatsapp',
+        to: input.to,
+        type: 'template',
+        template: {
+          name: input.templateName,
+          language: { code: 'en_US' },
+          components: input.templateParams ? [
+            {
+              type: 'body',
+              parameters: input.templateParams.map((p: string) => ({ type: 'text', text: p }))
+            }
+          ] : undefined,
+        }
+      };
+    }
+
     // Default simple text message
     return {
       messaging_product: 'whatsapp',

@@ -12,6 +12,12 @@ export class MetricsService implements OnModuleInit {
     labelNames: ['tenantId']
   });
 
+  private readonly campaignDeliveryCounter = new Counter({
+    name: 'campaign_delivery_total',
+    help: 'Delivered/Read message counts per campaign',
+    labelNames: ['campaignId', 'status']
+  });
+
   constructor() {
     this.registry = new Registry();
     
@@ -29,6 +35,7 @@ export class MetricsService implements OnModuleInit {
     this.registry.registerMetric(this.requestCounter);
     this.registry.registerMetric(this.activeUsersGauge);
     this.registry.registerMetric(this.tenantMessagesCounter);
+    this.registry.registerMetric(this.campaignDeliveryCounter);
   }
 
   onModuleInit() {
@@ -50,5 +57,9 @@ export class MetricsService implements OnModuleInit {
 
   async getMetrics() {
     return this.registry.metrics();
+  }
+
+  incrementCampaignDelivery(campaignId: string, status: 'DELIVERED' | 'READ' | 'FAILED') {
+    this.campaignDeliveryCounter.inc({ campaignId, status });
   }
 } 
