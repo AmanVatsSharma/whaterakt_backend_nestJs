@@ -1,26 +1,43 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class WhatsAppAdapter {
   private readonly logger = new Logger(WhatsAppAdapter.name);
+  private readonly apiUrl: string;
+  private readonly accessToken: string;
 
-  constructor(private readonly http: HttpService) {}
+  constructor(
+    private readonly http: HttpService,
+    private readonly config: ConfigService,
+  ) {
+    this.apiUrl = this.config.get<string>('WHATSAPP_API_URL')!;
+    this.accessToken = this.config.get<string>('WHATSAPP_ACCESS_TOKEN')!;
+  }
 
   async sendMessage(payload: any, tenantId?: string) {
     try {
-      // Placeholder for Meta WhatsApp Cloud API integration
-      const response = await firstValueFrom(this.http.post(process.env.WHATSAPP_API_URL!, payload, {
+      const idempotencyKey = payload?.idempotencyKey || `${tenantId || 'public'}:${Date.now()}`;
+      const response = await firstValueFrom(this.http.post(this.apiUrl, payload, {
         headers: {
-          Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+          Authorization: `Bearer ${this.accessToken}`,
           'X-Tenant-ID': tenantId ?? '',
+          'X-Idempotency-Key': idempotencyKey,
+          'Content-Type': 'application/json'
         },
+        timeout: 10000,
       }));
-      return response.data ?? { success: true };
+      const data = response.data ?? { success: true };
+      if (!data || data.error) {
+        this.logger.error(`WhatsApp error: ${JSON.stringify(data?.error || data)}`);
+        return { success: false, error: data?.error };
+      }
+      return data;
     } catch (e: any) {
       this.logger.error(`WhatsApp API error: ${e?.message}`);
-      return { success: false };
+      return { success: false, error: e?.message };
     }
   }
 }

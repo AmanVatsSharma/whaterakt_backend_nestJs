@@ -26,18 +26,48 @@ export class WhatsAppService extends TenantAwareService {
   @Retry(3, 1000)
   async sendMessage(payload: any) {
     try {
-      const jobData = { tenantId: this.tenantId, payload };
+      // Normalize payload into WhatsApp Cloud API format, including optional quick replies
+      const normalized = this.buildMessagePayload(payload);
+      const jobData = { tenantId: this.tenantId, payload: normalized };
       if (process.env.REDIS_HOST) {
         await this.messageQueue.add('message', jobData);
         return { success: true, queued: true };
       }
       // Fallback: send immediately without queue
-      const result = await this.adapter.sendMessage(payload, this.tenantId);
+      const result = await this.adapter.sendMessage(normalized, this.tenantId);
       return { success: true, queued: false, result };
     } catch (e) {
       this.logger.error(`Failed to queue message: ${e}`);
       return { success: false };
     }
+  }
+
+  private buildMessagePayload(input: any) {
+    // If quickReplies provided, build interactive reply buttons (max 3)
+    if (Array.isArray(input?.quickReplies) && input.quickReplies.length > 0) {
+      const buttons = input.quickReplies.slice(0, 3).map((title: string, index: number) => ({
+        type: 'reply',
+        reply: { id: `qr_${index + 1}`, title },
+      }));
+      return {
+        messaging_product: 'whatsapp',
+        to: input.to,
+        type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: { text: input.message || 'Choose an option:' },
+          action: { buttons },
+        },
+      };
+    }
+
+    // Default simple text message
+    return {
+      messaging_product: 'whatsapp',
+      to: input.to,
+      type: 'text',
+      text: { body: String(input.message || '') },
+    };
   }
 
   async validateTemplate(templateName: string, tenantId: string) {
@@ -55,3 +85,6 @@ export class WhatsAppService extends TenantAwareService {
     return template;
   }
 } 
+
+// Backward-compatible export for tests referencing old name
+export { WhatsAppService as WhatsappService };

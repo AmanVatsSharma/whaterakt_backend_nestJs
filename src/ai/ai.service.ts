@@ -8,6 +8,7 @@ import { TenantAwareService } from '../core/services/tenant-aware.service';
 @Injectable()
 export class AIService extends TenantAwareService {
   private readonly apiUrl = this.config.get('DEEPSEEK_API_URL');
+  private readonly apiKey = this.config.get('DEEPSEEK_API_KEY');
 
   constructor(
     private readonly http: HttpService,
@@ -18,15 +19,30 @@ export class AIService extends TenantAwareService {
   }
 
   async generateReplySuggestion(context: string) {
-    const response = await firstValueFrom(
-      this.http.post(this.apiUrl, {
-        prompt: `Generate WhatsApp reply for: ${context}`,
-        max_tokens: 60,
-      })
-    );
+    try {
+      const response = await firstValueFrom(
+        this.http.post(this.apiUrl, {
+          prompt: `Generate a concise, safe WhatsApp reply for: ${context}. 120 chars max, no PII.`,
+          max_tokens: 60,
+          temperature: 0.5,
+        }, {
+          headers: {
+            Authorization: this.apiKey ? `Bearer ${this.apiKey}` : undefined,
+            'Content-Type': 'application/json',
+          },
+          timeout: 8000,
+        })
+      );
 
-    const data: any = response.data ?? {};
-    const suggestion = data?.choices?.[0]?.text || data?.reply || data?.content || '';
-    return String(suggestion).trim();
+      const data: any = response.data ?? {};
+      const suggestion = data?.choices?.[0]?.text || data?.reply || data?.content || '';
+      return String(suggestion).trim().slice(0, 160);
+    } catch (e: any) {
+      // Graceful fallback
+      return 'Thanks for reaching out! We will get back to you shortly.';
+    }
   }
 }
+
+// Backward-compatible alias for tests
+export { AIService as AiService };

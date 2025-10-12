@@ -21,6 +21,8 @@ export class WhatsAppResolver {
     @Args('input') input: SendMessageInput,
     @Context() context: { tenant: Tenant }
   ) {
+    const tenantId = context?.tenant?.id;
+    this.whatsappService.setTenantId(tenantId);
     await this.whatsappService.sendMessage(input);
     return true;
   }
