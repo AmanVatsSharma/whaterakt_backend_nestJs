@@ -4,8 +4,9 @@ import { SwaggerModule } from '@nestjs/swagger';
 import { SWAGGER_CONFIG } from './core/swagger/config';
 import { AllExceptionsFilter } from './core/filters/all-exceptions.filter';
 import { validateConfig } from './core/config/config.schema';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { json } from 'express';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -23,6 +24,10 @@ async function bootstrap() {
         req.rawBody = buf?.toString('utf8');
       }
     }));
+    // Security headers
+    app.use(helmet());
+    // Validation across GraphQL/REST inputs
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidUnknownValues: true }));
     
     // Add Swagger documentation
     const document = SwaggerModule.createDocument(app, SWAGGER_CONFIG);

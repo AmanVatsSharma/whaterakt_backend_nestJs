@@ -109,7 +109,7 @@ export class WhatsAppWebhookController {
               const userId = await this.ensureSystemUserId(tenantId);
               if (userId) {
                 contact = await this.prisma.contact.upsert({
-                  where: { phone: from },
+                  where: { tenantId_phone: { tenantId, phone: from } },
                   update: {},
                   create: { phone: from, userId, tenantId },
                 });

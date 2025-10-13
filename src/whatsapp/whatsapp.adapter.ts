@@ -19,7 +19,8 @@ export class WhatsAppAdapter {
 
   async sendMessage(payload: any, tenantId?: string) {
     try {
-      const idempotencyKey = payload?.idempotencyKey || `${tenantId || 'public'}:${Date.now()}`;
+      const idBase = JSON.stringify({ to: payload?.to, type: payload?.type, ts: Date.now() });
+      const idempotencyKey = payload?.idempotencyKey || Buffer.from(idBase).toString('base64').slice(0, 48);
       const response = await firstValueFrom(this.http.post(this.apiUrl, payload, {
         headers: {
           Authorization: `Bearer ${this.accessToken}`,

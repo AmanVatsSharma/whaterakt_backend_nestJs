@@ -19,8 +19,9 @@ export class CampaignResolver {
   ) {}
 
   @Query(() => [Campaign])
-  async campaigns() {
+  async campaigns(@Context() context: { tenant: Tenant }) {
     return this.prisma.campaign.findMany({
+      where: { tenantId: context?.tenant?.id },
       include: { messages: true },
     });
   }

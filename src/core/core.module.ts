@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TenantGuard } from './guards/tenant.guard';
 import { RateLimitGuard } from './guards/rate-limit.guard';
 import { RedisProvider } from './cache/redis.provider';
+import { MetricsModule } from '../metrics/metrics.module';
 
 @Global()
 @Module({
@@ -12,6 +13,7 @@ import { RedisProvider } from './cache/redis.provider';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    MetricsModule,
   ],
   providers: [
     PrismaService,

@@ -16,7 +16,7 @@ export class CampaignProcessor {
   async handleDispatch(job: Job<{ tenantId: string; campaignId: string; messageTemplate?: any }>) {
     const { tenantId, campaignId, messageTemplate } = job.data;
 
-    const contacts = await this.prisma.contact.findMany({ where: { tenantId } });
+    const contacts = await this.prisma.contact.findMany({ where: { tenantId, subscribed: true } });
     const perTenantRate = Number(process.env.CAMPAIGN_RATE_PER_MIN || 600); // messages/minute
     const batchSize = Math.max(1, Math.min(100, Math.floor(perTenantRate / 6))); // ~10s windows
     const batches = this.chunk(contacts, batchSize);
@@ -36,7 +36,7 @@ export class CampaignProcessor {
         }
         // attach campaignId for downstream persistence
         payload.campaignId = campaignId;
-        await this.messageQueue.add('message', { tenantId, payload });
+        await this.messageQueue.add('message', { tenantId, payload, campaignId });
       }
       // Spread batches across time to respect per-tenant rate
       if (i < batches.length - 1) await new Promise((r) => setTimeout(r, 10_000));
