@@ -1,7 +1,8 @@
-import { Injectable, CanActivate, ExecutionContext, Inject } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GqlExecutionContext } from '@nestjs/graphql';
+import { MetricsService } from '../../metrics/metrics.service';
 
 @Injectable()
 export class RateLimitGuard implements CanActivate {
@@ -12,6 +13,7 @@ export class RateLimitGuard implements CanActivate {
   constructor(
     @Inject('REDIS_CLIENT') private readonly redis: any,
     private readonly config: ConfigService,
+    private readonly metrics: MetricsService,
   ) {
     this.windowSeconds = Number(this.config.get('RATE_LIMIT_WINDOW_SECONDS') || 60);
     this.maxRequests = Number(this.config.get('RATE_LIMIT_MAX_REQUESTS') || 100);
@@ -22,7 +24,7 @@ export class RateLimitGuard implements CanActivate {
       const gqlCtx = GqlExecutionContext.create(context);
       const req = (gqlCtx.getContext()?.req) || context.switchToHttp().getRequest();
       const tenantId = req.tenant?.id || 'public';
-      const routeKey = req.path?.replace(/\//g, ':') || 'unknown';
+      const routeKey = (req.path || req?.route?.path || 'unknown').replace(/\//g, ':');
       const key = `rate_limit:${tenantId}:${routeKey}`;
 
       // If Redis is unavailable, allow request
@@ -34,7 +36,8 @@ export class RateLimitGuard implements CanActivate {
       const current = await this.redis.incr(key);
       if (current > this.maxRequests) {
         await this.redis.decr(key);
-        return false;
+        this.metrics.incrementRateLimitBlock(tenantId);
+        throw new HttpException('Too Many Requests', HttpStatus.TOO_MANY_REQUESTS);
       }
 
       if (current === 1) {

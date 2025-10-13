@@ -18,6 +18,12 @@ export class MetricsService implements OnModuleInit {
     labelNames: ['campaignId', 'status']
   });
 
+  private readonly rateLimitBlocksCounter = new Counter({
+    name: 'rate_limit_blocks_total',
+    help: 'Number of rate-limited requests per tenant',
+    labelNames: ['tenantId']
+  });
+
   constructor() {
     this.registry = new Registry();
     
@@ -36,6 +42,7 @@ export class MetricsService implements OnModuleInit {
     this.registry.registerMetric(this.activeUsersGauge);
     this.registry.registerMetric(this.tenantMessagesCounter);
     this.registry.registerMetric(this.campaignDeliveryCounter);
+    this.registry.registerMetric(this.rateLimitBlocksCounter);
   }
 
   onModuleInit() {
@@ -61,5 +68,9 @@ export class MetricsService implements OnModuleInit {
 
   incrementCampaignDelivery(campaignId: string, status: 'DELIVERED' | 'READ' | 'FAILED') {
     this.campaignDeliveryCounter.inc({ campaignId, status });
+  }
+
+  incrementRateLimitBlock(tenantId: string) {
+    this.rateLimitBlocksCounter.inc({ tenantId });
   }
 } 

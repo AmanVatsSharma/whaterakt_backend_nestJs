@@ -26,6 +26,10 @@ export class WhatsAppService extends TenantAwareService {
   @Retry(3, 1000)
   async sendMessage(payload: any) {
     try {
+      // Validate template usage for approved templates
+      if (payload?.templateName && this.tenantId) {
+        await this.validateTemplate(payload.templateName, this.tenantId);
+      }
       // Normalize payload into WhatsApp Cloud API format, including optional quick replies
       const normalized = this.buildMessagePayload(payload);
       const jobData = { tenantId: this.tenantId, payload: normalized };

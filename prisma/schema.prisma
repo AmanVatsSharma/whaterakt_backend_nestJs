@@ -70,7 +70,7 @@ enum CampaignStatus {
 
 model Contact {
   id        String  @id @default(uuid())
-  phone     String  @unique
+  phone     String
   firstName String?
   lastName  String?
   userId    String
@@ -78,6 +78,9 @@ model Contact {
   groups    Group[]
   Tenant    Tenant? @relation(fields: [tenantId], references: [id])
   tenantId  String?
+  subscribed Boolean @default(true)
+
+  @@unique([tenantId, phone])
 }
 
 model Template {

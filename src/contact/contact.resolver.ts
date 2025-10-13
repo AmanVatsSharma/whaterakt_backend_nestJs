@@ -29,8 +29,9 @@ export class ContactResolver {
   }
 
   @Query(() => [Contact])
-  async contacts() {
+  async contacts(@Context() context: { tenant: Tenant }) {
     return this.prisma.contact.findMany({
+      where: { tenantId: context?.tenant?.id },
       include: { groups: true },
     });
   }
