@@ -26,6 +26,14 @@ export class WhatsAppService extends TenantAwareService {
   @Retry(3, 1000)
   async sendMessage(payload: any) {
     try {
+      // Block sends to unsubscribed contacts when to maps to a contact
+      if (this.tenantId && payload?.to) {
+        const existing = await this.prisma.contact.findFirst({ where: { tenantId: this.tenantId, phone: payload.to } });
+        if (existing && existing.subscribed === false) {
+          this.logger.warn(`Blocked send to unsubscribed contact ${payload.to} tenant=${this.tenantId}`);
+          return { success: false, blocked: true, reason: 'unsubscribed' };
+        }
+      }
       // Validate template usage for approved templates
       if (payload?.templateName && this.tenantId) {
         await this.validateTemplate(payload.templateName, this.tenantId);

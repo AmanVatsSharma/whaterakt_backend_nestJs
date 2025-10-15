@@ -15,6 +15,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bull';
 import { WhatsAppModule } from './whatsapp/whatsapp.module';
 import { InboxModule } from './inbox/inbox.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { Logger } from '@nestjs/common';
 import { InMemoryMessageQueue } from './core/queues/in-memory.queue';
 import { HealthModule } from './health/health.module';
@@ -71,6 +72,7 @@ const logger = new Logger('BullModule');
     ScheduleModule.forRoot(),
     WhatsAppModule,
     InboxModule,
+    AnalyticsModule,
     HealthModule,
     MetricsModule,
     HttpModule,

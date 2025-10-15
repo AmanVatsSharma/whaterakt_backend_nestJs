@@ -1,4 +1,4 @@
-import { Resolver, Mutation, Args, Context } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Context, Query } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../core/guards/gql-auth.guard';
 import { TenantGuard } from '../core/guards/tenant.guard';
@@ -9,6 +9,9 @@ import { Tenant } from '../tenant/entities/tenant.entity';
 @UseGuards(GqlAuthGuard, TenantGuard)
 export class ConversationResolver {
   constructor(private readonly conversations: ConversationService) {}
+
+  @Query(() => Boolean)
+  async pingInbox() { return true; }
 
   @Mutation(() => Boolean)
   async assignConversation(@Args('conversationId') conversationId: string, @Args('userId') userId: string) {
