@@ -13,4 +13,7 @@ export class CreateContactInput {
 
   @Field()
   userId: string;
+
+  @Field(() => [String], { nullable: true })
+  tags?: string[];
 } 

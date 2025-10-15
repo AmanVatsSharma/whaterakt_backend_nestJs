@@ -8,11 +8,13 @@ import { ContactModule } from './contact/contact.module';
 import { TemplateModule } from './template/template.module';
 import { PrismaService } from './prisma.service';
 import { AiModule } from './ai/ai.module';
+import { AutomationsModule } from './automations/automations.module';
 import { CoreModule } from './core/core.module';
 import { TenantModule } from './tenant/tenant.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bull';
 import { WhatsAppModule } from './whatsapp/whatsapp.module';
+import { InboxModule } from './inbox/inbox.module';
 import { Logger } from '@nestjs/common';
 import { InMemoryMessageQueue } from './core/queues/in-memory.queue';
 import { HealthModule } from './health/health.module';
@@ -68,9 +70,11 @@ const logger = new Logger('BullModule');
     TenantModule,
     ScheduleModule.forRoot(),
     WhatsAppModule,
+    InboxModule,
     HealthModule,
     MetricsModule,
     HttpModule,
+    AutomationsModule,
   ],
   providers: [
     PrismaService,

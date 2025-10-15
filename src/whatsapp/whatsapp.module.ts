@@ -8,6 +8,7 @@ import { PrismaService } from 'src/prisma.service';
 import { WhatsAppProcessor } from './whatsapp.processor';
 import { WhatsAppAdapter } from './whatsapp.adapter';
 import { WhatsAppWebhookController } from './webhook.controller';
+import { AutomationsModule } from '../automations/automations.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { WhatsAppWebhookController } from './webhook.controller';
         defaultPhoneNumberId: process.env.WHATSAPP_DEFAULT_PHONE_NUMBER_ID,
       },
     })),
+    AutomationsModule,
     BullModule.registerQueue({
       name: 'messages',
       defaultJobOptions: {
