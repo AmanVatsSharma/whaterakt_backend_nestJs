@@ -6,22 +6,46 @@ import { firstValueFrom } from 'rxjs';
 @Injectable()
 export class WhatsAppAdapter {
   private readonly logger = new Logger(WhatsAppAdapter.name);
-  private readonly apiUrl: string;
   private readonly accessToken: string;
+  private readonly graphBase: string;
+  private readonly graphVersion: string;
+  private readonly defaultPhoneNumberId?: string;
 
   constructor(
     private readonly http: HttpService,
     private readonly config: ConfigService,
   ) {
-    this.apiUrl = this.config.get<string>('WHATSAPP_API_URL')!;
     this.accessToken = this.config.get<string>('WHATSAPP_ACCESS_TOKEN')!;
+    this.graphBase = this.config.get<string>('WHATSAPP_GRAPH_BASE') || 'https://graph.facebook.com';
+    this.graphVersion = this.config.get<string>('WHATSAPP_GRAPH_VERSION') || 'v20.0';
+    this.defaultPhoneNumberId = this.config.get<string>('WHATSAPP_DEFAULT_PHONE_NUMBER_ID');
+  }
+
+  private resolvePhoneNumberId(tenantId?: string, explicit?: string): string | undefined {
+    if (explicit) return explicit;
+    // Prefer tenant mapping from env (temporary) until DB mapping exists
+    try {
+      const mapRaw = process.env.WHATSAPP_TENANT_PHONE_MAP;
+      if (tenantId && mapRaw) {
+        const map = JSON.parse(mapRaw) as Record<string, string>; // phone_number_id -> tenantId
+        const found = Object.entries(map).find(([, t]) => t === tenantId)?.[0];
+        if (found) return found;
+      }
+    } catch {}
+    return this.defaultPhoneNumberId;
   }
 
   async sendMessage(payload: any, tenantId?: string) {
     try {
       const idBase = JSON.stringify({ to: payload?.to, type: payload?.type, ts: Date.now() });
       const idempotencyKey = payload?.idempotencyKey || Buffer.from(idBase).toString('base64').slice(0, 48);
-      const response = await firstValueFrom(this.http.post(this.apiUrl, payload, {
+      const phoneNumberId = this.resolvePhoneNumberId(tenantId, payload?.phone_number_id);
+      if (!phoneNumberId) {
+        this.logger.error('Missing phone_number_id for WhatsApp send');
+        return { success: false, error: 'missing_phone_number_id' } as any;
+      }
+      const url = `${this.graphBase}/${this.graphVersion}/${phoneNumberId}/messages`;
+      const response = await firstValueFrom(this.http.post(url, payload, {
         headers: {
           Authorization: `Bearer ${this.accessToken}`,
           'X-Tenant-ID': tenantId ?? '',

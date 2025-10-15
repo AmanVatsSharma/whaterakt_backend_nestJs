@@ -6,7 +6,7 @@ import { CampaignProcessor } from './campaign.processor';
 @Module({
   imports: [
     BullModule.registerQueue(
-      { name: 'campaigns' },
+      { name: 'campaigns', defaultJobOptions: { attempts: 3, backoff: { type: 'fixed', delay: 5000 }, removeOnFail: 500 } },
       { name: 'messages' },
     ),
   ],

@@ -14,19 +14,27 @@ import { WhatsAppWebhookController } from './webhook.controller';
     HttpModule,
     ConfigModule.forFeature(() => ({
       whatsapp: {
-        apiUrl: process.env.WHATSAPP_API_URL,
         accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
+        graphBase: process.env.WHATSAPP_GRAPH_BASE,
+        graphVersion: process.env.WHATSAPP_GRAPH_VERSION,
+        defaultPhoneNumberId: process.env.WHATSAPP_DEFAULT_PHONE_NUMBER_ID,
       },
     })),
     BullModule.registerQueue({
       name: 'messages',
       defaultJobOptions: {
-        attempts: 3,
+        attempts: 5,
         backoff: {
           type: 'exponential',
-          delay: 1000,
+          delay: 2000,
         },
         removeOnComplete: true,
+        removeOnFail: 1000,
+      },
+      // global limiter to avoid provider rate limits (can be tuned)
+      limiter: {
+        max: Number(process.env.MESSAGES_QUEUE_LIMIT_MAX || 1200),
+        duration: Number(process.env.MESSAGES_QUEUE_LIMIT_DURATION || 60000),
       },
     }),
   ],

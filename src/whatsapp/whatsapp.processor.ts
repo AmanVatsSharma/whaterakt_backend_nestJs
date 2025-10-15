@@ -40,6 +40,14 @@ export class WhatsAppProcessor {
       } catch {}
     }
 
+    // Attach per-message idempotency if not present
+    if (!waPayload.idempotencyKey) {
+      try {
+        const base = JSON.stringify({ to: waPayload?.to, type: waPayload?.type, tenantId, ts: Date.now() });
+        (waPayload as any).idempotencyKey = Buffer.from(base).toString('base64').slice(0, 48);
+      } catch {}
+    }
+
     const result = await this.adapter.sendMessage(waPayload, tenantId);
 
     try {

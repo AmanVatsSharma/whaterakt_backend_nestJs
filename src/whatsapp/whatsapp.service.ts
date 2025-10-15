@@ -30,8 +30,16 @@ export class WhatsAppService extends TenantAwareService {
       if (payload?.templateName && this.tenantId) {
         await this.validateTemplate(payload.templateName, this.tenantId);
       }
+      // Enforce 24h session: if not template, require session window compliance (basic: allow always for now, TODO: track last inbound per contact)
+      if (!payload?.templateName && !payload?.template && payload?.type !== 'template') {
+        // Hook point for future session checks based on last inbound
+      }
       // Normalize payload into WhatsApp Cloud API format, including optional quick replies
       const normalized = this.buildMessagePayload(payload);
+      // Ensure required Graph API key: phone_number_id can be provided or resolved in adapter
+      if (payload?.phone_number_id) {
+        (normalized as any).phone_number_id = payload.phone_number_id;
+      }
       const jobData = { tenantId: this.tenantId, payload: normalized };
       if (process.env.REDIS_HOST) {
         await this.messageQueue.add('message', jobData);

@@ -91,6 +91,8 @@ export class AppModule {
       .apply(TenantMiddleware)
       .exclude(
         { path: 'webhooks/whatsapp', method: RequestMethod.ALL },
+        { path: 'health', method: RequestMethod.ALL },
+        { path: 'metrics', method: RequestMethod.ALL },
       )
       .forRoutes('*');
   }
