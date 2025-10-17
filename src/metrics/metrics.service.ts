@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { Counter, Gauge, Registry } from 'prom-client';
+import { Counter, Gauge, Registry, collectDefaultMetrics } from 'prom-client';
 
 @Injectable()
 export class MetricsService implements OnModuleInit {
@@ -43,11 +43,13 @@ export class MetricsService implements OnModuleInit {
     this.registry.registerMetric(this.tenantMessagesCounter);
     this.registry.registerMetric(this.campaignDeliveryCounter);
     this.registry.registerMetric(this.rateLimitBlocksCounter);
+
+    // Default Node.js/process metrics
+    collectDefaultMetrics({ register: this.registry });
   }
 
   onModuleInit() {
-    // Clear default metrics registry
-    this.registry.clear();
+    // No-op; metrics are already registered to this.registry
   }
 
   incrementRequestCount(method: string, status: number, path: string) {

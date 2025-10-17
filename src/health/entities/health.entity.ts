@@ -1,10 +1,10 @@
 import { ObjectType, Field } from '@nestjs/graphql';
 
-@ObjectType()
+@ObjectType({ description: 'Service health summary' })
 export class Health {
-  @Field()
+  @Field({ description: 'UP/DOWN' })
   status: string;
 
-  @Field()
+  @Field({ description: 'ISO timestamp' })
   timestamp: string;
 } 

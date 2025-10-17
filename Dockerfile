@@ -1,27 +1,18 @@
-# syntax=docker/dockerfile:1
-
-# --- Base ---
-FROM node:22-alpine AS base
+# Build stage
+FROM node:20-alpine AS build
 WORKDIR /app
-ENV NODE_ENV=production
-
-# --- Dependencies ---
-FROM base AS deps
-RUN apk add --no-cache libc6-compat
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
-
-# --- Builder ---
-FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
+COPY package*.json ./
+RUN npm ci --legacy-peer-deps
 COPY . .
 RUN npm run build
 
-# --- Runtime ---
-FROM node:22-alpine AS runtime
+# Runtime stage
+FROM node:20-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=builder /app/dist ./dist
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json ./
-CMD ["node", "dist/main.js"]
+COPY --from=build /app/package*.json ./
+RUN npm ci --omit=dev --legacy-peer-deps
+COPY --from=build /app/dist ./dist
+COPY prisma ./prisma
+EXPOSE 3000
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]

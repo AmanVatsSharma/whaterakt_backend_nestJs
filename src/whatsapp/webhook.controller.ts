@@ -5,13 +5,14 @@ import { PrismaService } from 'src/prisma.service';
 import { MetricsService } from '../metrics/metrics.service';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcryptjs';
+import { AutomationsService } from '../automations/automations.service';
 
 @ApiTags('WhatsApp')
 @ApiSecurity('TenantAuth')
 @Controller('webhooks/whatsapp')
 export class WhatsAppWebhookController {
   private readonly logger = new Logger(WhatsAppWebhookController.name);
-  constructor(private readonly prisma: PrismaService, private readonly metrics: MetricsService) {}
+  constructor(private readonly prisma: PrismaService, private readonly metrics: MetricsService, private readonly automations: AutomationsService) {}
 
   private resolveTenantIdFromWebhook(value: any): string | undefined {
     try {
@@ -137,6 +138,26 @@ export class WhatsAppWebhookController {
                 data: { content: text, status: 'SENT', direction: 'INBOUND', from, conversationId: conversation?.id, tenantId: tenantId },
               });
             }
+
+            // Basic compliance: record OPT_OUT/OPT_IN keywords and trigger automations
+            try {
+              const features = process.env;
+              const lower = (text || '').trim().toLowerCase();
+              if (tenantId && from && lower) {
+                if (!features.FEATURE_COMPLIANCE_ENABLED || features.FEATURE_COMPLIANCE_ENABLED === 'true') {
+                  if (lower === 'stop' || lower === 'unsubscribe') {
+                    await this.prisma.consentLog.create({ data: { tenantId, contactId: contact?.id, type: 'OPT_OUT', channel: 'WHATSAPP' } });
+                    await this.prisma.contact.update({ where: { id: contact!.id }, data: { subscribed: false } });
+                  } else if (lower === 'start' || lower === 'subscribe') {
+                    await this.prisma.consentLog.create({ data: { tenantId, contactId: contact?.id, type: 'OPT_IN', channel: 'WHATSAPP' } });
+                    await this.prisma.contact.update({ where: { id: contact!.id }, data: { subscribed: true } });
+                  }
+                }
+                if (!features.FEATURE_AUTOMATIONS_ENABLED || features.FEATURE_AUTOMATIONS_ENABLED === 'true') {
+                  await this.automations.handleInboundKeyword(tenantId, from, lower);
+                }
+              }
+            } catch {}
           }
 
           for (const s of statuses) {

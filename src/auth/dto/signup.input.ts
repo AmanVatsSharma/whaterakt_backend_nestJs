@@ -1,13 +1,13 @@
 import { InputType, Field } from '@nestjs/graphql';
 
-@InputType()
+@InputType({ description: 'Signup and create a new tenant' })
 export class SignupInput {
-  @Field()
+  @Field({ description: 'Email address' })
   email: string;
 
-  @Field()
+  @Field({ description: 'Password' })
   password: string;
 
-  @Field()
+  @Field({ description: 'Tenant (workspace) name to create' })
   tenantName: string;
 }

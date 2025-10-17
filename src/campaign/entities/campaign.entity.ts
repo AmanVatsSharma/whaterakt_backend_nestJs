@@ -1,23 +1,23 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { CampaignType, CampaignStatus } from '@prisma/client';
 
-@ObjectType()
+@ObjectType({ description: 'A campaign aggregates and schedules WhatsApp messages' })
 export class Campaign {
-  @Field(() => ID)
+  @Field(() => ID, { description: 'Unique campaign identifier' })
   id: string;
 
-  @Field()
+  @Field({ description: 'Campaign name' })
   name: string;
 
-  @Field(() => CampaignType)
+  @Field(() => CampaignType, { description: 'Campaign type (BROADCAST, TRIGGERED, SEQUENCE)' })
   type: CampaignType;
 
-  @Field(() => CampaignStatus)
+  @Field(() => CampaignStatus, { description: 'Current campaign status' })
   status: CampaignStatus;
 
-  @Field({ nullable: true })
+  @Field({ nullable: true, description: 'Planned schedule datetime (if any)' })
   scheduledAt?: Date;
 
-  @Field()
+  @Field({ description: 'Creation timestamp' })
   createdAt: Date;
 } 

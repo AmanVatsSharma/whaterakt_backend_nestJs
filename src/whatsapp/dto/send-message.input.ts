@@ -2,84 +2,84 @@ import { InputType, Field, registerEnumType } from '@nestjs/graphql';
 import { IsString, IsNotEmpty, IsPhoneNumber, IsArray, ArrayMaxSize, IsOptional, ValidateNested, IsUrl } from 'class-validator';
 import { Type } from 'class-transformer';
 
-@InputType()
+@InputType({ description: 'Send a WhatsApp message. Supports text, media, templates, quick replies, and lists.' })
 export class SendMessageInput {
-  @Field()
+  @Field({ description: 'Recipient phone in E.164 format (e.g., +15551234567)' })
   @IsString()
   @IsNotEmpty()
   @IsPhoneNumber()
   to: string;
 
-  @Field()
+  @Field({ description: 'Plain text message body (ignored if template/media is used)' })
   @IsString()
   @IsNotEmpty()
   message: string;
 
 
-  @Field(() => [String], { nullable: true })
+  @Field(() => [String], { nullable: true, description: 'Up to 3 quick reply buttons (titles)' })
   @IsArray()
   @ArrayMaxSize(3)
   quickReplies?: string[];
 
-  @Field({ nullable: true })
+  @Field({ nullable: true, description: 'Approved template name for HSM messages' })
   @IsOptional()
   @IsString()
   templateName?: string;
 
-  @Field(() => [String], { nullable: true })
+  @Field(() => [String], { nullable: true, description: 'Template parameters to substitute into body' })
   @IsOptional()
   @IsArray()
   templateParams?: string[];
 
-  @Field(() => [ListSectionInput], { nullable: true })
+  @Field(() => [ListSectionInput], { nullable: true, description: 'Interactive list sections with rows' })
   @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => ListSectionInput)
   listSections?: ListSectionInput[];
 
-  @Field(() => MediaType, { nullable: true })
+  @Field(() => MediaType, { nullable: true, description: 'Media type when sending media (image, document, video, audio, sticker)' })
   @IsOptional()
   mediaType?: MediaType;
 
-  @Field({ nullable: true })
+  @Field({ nullable: true, description: 'Media URL (publicly accessible) for media messages' })
   @IsOptional()
   @IsUrl({ require_tld: false })
   mediaUrl?: string;
 
-  @Field({ nullable: true })
+  @Field({ nullable: true, description: 'Optional caption for media' })
   @IsOptional()
   @IsString()
   mediaCaption?: string;
 
-  @Field({ nullable: true })
+  @Field({ nullable: true, description: 'Optional filename for document media' })
   @IsOptional()
   @IsString()
   mediaFilename?: string;
 } 
 
-@InputType()
+@InputType({ description: 'A list section containing one or more rows' })
 export class ListSectionInput {
-  @Field()
+  @Field({ description: 'Section title' })
   @IsString()
   title: string;
 
-  @Field(() => [ListRowInput])
+  @Field(() => [ListRowInput], { description: 'Rows displayed inside this section' })
   @ValidateNested({ each: true })
   @Type(() => ListRowInput)
   rows: ListRowInput[];
 }
 
-@InputType()
+@InputType({ description: 'A single row item inside a list section' })
 export class ListRowInput {
-  @Field()
+  @Field({ description: 'Unique row identifier' })
   @IsString()
   id: string;
 
-  @Field()
+  @Field({ description: 'Row title visible to the user' })
   @IsString()
   title: string;
 
-  @Field({ nullable: true })
+  @Field({ nullable: true, description: 'Optional row description' })
   @IsOptional()
   @IsString()
   description?: string;
@@ -93,4 +93,4 @@ export enum MediaType {
   STICKER = 'sticker',
 }
 
-registerEnumType(MediaType, { name: 'MediaType' });
+registerEnumType(MediaType, { name: 'MediaType', description: 'Supported media types for WhatsApp messages' });

@@ -26,12 +26,36 @@ export class WhatsAppService extends TenantAwareService {
   @Retry(3, 1000)
   async sendMessage(payload: any) {
     try {
+      // Block sends to unsubscribed contacts when to maps to a contact
+      if (this.tenantId && payload?.to) {
+        const existing = await this.prisma.contact.findFirst({ where: { tenantId: this.tenantId, phone: payload.to } });
+        if (existing && existing.subscribed === false) {
+          this.logger.warn(`Blocked send to unsubscribed contact ${payload.to} tenant=${this.tenantId}`);
+          return { success: false, blocked: true, reason: 'unsubscribed' };
+        }
+      }
       // Validate template usage for approved templates
       if (payload?.templateName && this.tenantId) {
         await this.validateTemplate(payload.templateName, this.tenantId);
       }
+      // Enforce 24h session for non-template messages based on last inbound
+      if (!payload?.templateName && !payload?.template && payload?.type !== 'template' && this.tenantId && payload?.to) {
+        const lastInbound = await this.prisma.message.findFirst({
+          where: { tenantId: this.tenantId, from: payload.to, direction: 'INBOUND' },
+          orderBy: { createdAt: 'desc' },
+        });
+        const within24h = lastInbound ? (Date.now() - new Date(lastInbound.createdAt).getTime()) <= 24 * 60 * 60 * 1000 : false;
+        if (!within24h) {
+          this.logger.warn(`Blocked non-template message outside 24h window to ${payload.to}`);
+          return { success: false, blocked: true, reason: 'session_expired' };
+        }
+      }
       // Normalize payload into WhatsApp Cloud API format, including optional quick replies
       const normalized = this.buildMessagePayload(payload);
+      // Ensure required Graph API key: phone_number_id can be provided or resolved in adapter
+      if (payload?.phone_number_id) {
+        (normalized as any).phone_number_id = payload.phone_number_id;
+      }
       const jobData = { tenantId: this.tenantId, payload: normalized };
       if (process.env.REDIS_HOST) {
         await this.messageQueue.add('message', jobData);

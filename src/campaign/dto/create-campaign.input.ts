@@ -1,17 +1,17 @@
 import { InputType, Field } from '@nestjs/graphql';
 import { CampaignType } from '../enums';
 
-@InputType()
+@InputType({ description: 'Create a campaign which will schedule/broadcast messages' })
 export class CreateCampaignInput {
-  @Field()
+  @Field({ description: 'Human-friendly campaign name' })
   name: string;
   
-  @Field(() => CampaignType)
+  @Field(() => CampaignType, { description: 'Campaign type (BROADCAST, TRIGGERED, SEQUENCE)' })
   type: CampaignType;
 
-  @Field({ nullable: true })
+  @Field({ nullable: true, description: 'Optional ISO datetime to schedule (immediate if omitted)' })
   scheduledAt?: Date;
 
-  @Field()
+  @Field({ description: 'User ID who owns this campaign' })
   userId: string;
 } 

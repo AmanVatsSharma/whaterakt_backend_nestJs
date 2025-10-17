@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsUrl, IsNumber, IsOptional, IsEnum } from 'class-validator';
+import { IsString, IsNotEmpty, IsUrl, IsNumber, IsOptional, IsEnum, IsArray } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 import { validateSync } from 'class-validator';
 
@@ -36,6 +36,29 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   WHATSAPP_ACCESS_TOKEN: string = 'development';
+
+  // Optional but recommended in production for webhook verification
+  @IsString()
+  @IsOptional()
+  WHATSAPP_VERIFY_TOKEN: string;
+
+  @IsString()
+  @IsOptional()
+  WHATSAPP_APP_SECRET: string;
+
+  // Graph API routing
+  @IsString()
+  @IsOptional()
+  WHATSAPP_GRAPH_BASE: string = 'https://graph.facebook.com';
+
+  @IsString()
+  @IsOptional()
+  WHATSAPP_GRAPH_VERSION: string = 'v20.0';
+
+  // Fallback phone_number_id if tenant mapping is absent
+  @IsString()
+  @IsOptional()
+  WHATSAPP_DEFAULT_PHONE_NUMBER_ID: string;
 
   @IsString()
   @IsOptional()
@@ -92,6 +115,46 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   WHATSAPP_TENANT_PHONE_MAP: string; // JSON map of phone_number_id -> tenantId
+
+  // Rate limiting (GraphQL guards)
+  @IsNumber()
+  @IsOptional()
+  RATE_LIMIT_WINDOW_SECONDS: number = 60;
+
+  @IsNumber()
+  @IsOptional()
+  RATE_LIMIT_MAX_REQUESTS: number = 100;
+
+  // Queue limiter for messages queue
+  @IsNumber()
+  @IsOptional()
+  MESSAGES_QUEUE_LIMIT_MAX: number = 1200;
+
+  @IsNumber()
+  @IsOptional()
+  MESSAGES_QUEUE_LIMIT_DURATION: number = 60000;
+
+  // CORS origins (comma-separated)
+  @IsString()
+  @IsOptional()
+  CORS_ORIGINS: string;
+
+  // Feature flags
+  @IsString()
+  @IsOptional()
+  FEATURE_INBOX_ENABLED: string;
+
+  @IsString()
+  @IsOptional()
+  FEATURE_AUTOMATIONS_ENABLED: string;
+
+  @IsString()
+  @IsOptional()
+  FEATURE_SEGMENTATION_ENABLED: string;
+
+  @IsString()
+  @IsOptional()
+  FEATURE_COMPLIANCE_ENABLED: string;
 }
 
 export function validateConfig(config: Record<string, unknown>) {
