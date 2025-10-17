@@ -1,14 +1,14 @@
 import { InputType, Field } from '@nestjs/graphql';
 import { IsString, IsNotEmpty } from 'class-validator';
 
-@InputType()
+@InputType({ description: 'Create a tenant (workspace)' })
 export class CreateTenantInput {
-  @Field()
+  @Field({ description: 'Tenant name' })
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @Field({ nullable: true })
+  @Field({ nullable: true, description: 'Optional description' })
   @IsString()
   description?: string;
 } 
