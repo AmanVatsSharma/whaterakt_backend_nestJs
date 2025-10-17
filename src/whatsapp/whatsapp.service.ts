@@ -38,9 +38,17 @@ export class WhatsAppService extends TenantAwareService {
       if (payload?.templateName && this.tenantId) {
         await this.validateTemplate(payload.templateName, this.tenantId);
       }
-      // Enforce 24h session: if not template, require session window compliance (basic: allow always for now, TODO: track last inbound per contact)
-      if (!payload?.templateName && !payload?.template && payload?.type !== 'template') {
-        // Hook point for future session checks based on last inbound
+      // Enforce 24h session for non-template messages based on last inbound
+      if (!payload?.templateName && !payload?.template && payload?.type !== 'template' && this.tenantId && payload?.to) {
+        const lastInbound = await this.prisma.message.findFirst({
+          where: { tenantId: this.tenantId, from: payload.to, direction: 'INBOUND' },
+          orderBy: { createdAt: 'desc' },
+        });
+        const within24h = lastInbound ? (Date.now() - new Date(lastInbound.createdAt).getTime()) <= 24 * 60 * 60 * 1000 : false;
+        if (!within24h) {
+          this.logger.warn(`Blocked non-template message outside 24h window to ${payload.to}`);
+          return { success: false, blocked: true, reason: 'session_expired' };
+        }
       }
       // Normalize payload into WhatsApp Cloud API format, including optional quick replies
       const normalized = this.buildMessagePayload(payload);
