@@ -9,13 +9,14 @@ import { TemplateModule } from './template/template.module';
 import { PrismaService } from './prisma.service';
 import { AiModule } from './ai/ai.module';
 import { AutomationsModule } from './automations/automations.module';
+import { InboxModule } from './inbox/inbox.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { CoreModule } from './core/core.module';
 import { TenantModule } from './tenant/tenant.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bull';
 import { WhatsAppModule } from './whatsapp/whatsapp.module';
-import { InboxModule } from './inbox/inbox.module';
-import { AnalyticsModule } from './analytics/analytics.module';
+// inbox and automations will be conditionally imported via OPTIONAL_MODULES
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import { InMemoryMessageQueue } from './core/queues/in-memory.queue';
@@ -29,6 +30,13 @@ import { TenantMiddleware } from './core/middlewares/tenant.middleware';
 import { RequestIdMiddleware } from './core/middlewares/request-id.middleware';
 
 const logger = new Logger('BullModule');
+
+const FEATURE_INBOX_ENABLED = process.env.FEATURE_INBOX_ENABLED !== 'false';
+const FEATURE_AUTOMATIONS_ENABLED = process.env.FEATURE_AUTOMATIONS_ENABLED !== 'false';
+const OPTIONAL_MODULES: any[] = [
+  ...(FEATURE_INBOX_ENABLED ? [InboxModule] : []),
+  ...(FEATURE_AUTOMATIONS_ENABLED ? [AutomationsModule] : []),
+];
 
 @Module({
   imports: [
@@ -77,6 +85,7 @@ const logger = new Logger('BullModule');
     HealthModule,
     MetricsModule,
     HttpModule,
+    ...OPTIONAL_MODULES,
   ],
   providers: [
     PrismaService,
