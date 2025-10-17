@@ -7,6 +7,9 @@ import { validateConfig } from './core/config/config.schema';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { json } from 'express';
 import helmet from 'helmet';
+import pino from 'pino';
+import pinoHttp from 'pino-http';
+import { requestContext } from './core/logging/request-context';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -16,7 +19,8 @@ async function bootstrap() {
     const config = await validateConfig(process.env);
     logger.log('Configuration validated successfully');
 
-    const app = await NestFactory.create(AppModule);
+    const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
+    const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
     // Capture raw body for webhook signature verification
     app.use('/webhooks/whatsapp', json({
@@ -24,6 +28,13 @@ async function bootstrap() {
         req.rawBody = buf?.toString('utf8');
       }
     }));
+    // Structured logging with request ids
+    app.use(pinoHttp({
+      logger,
+      customProps: () => ({ requestId: requestContext.getStore()?.requestId }),
+      customSuccessMessage: (_req, res) => `HTTP ${res.statusCode}`,
+    } as any));
+
     // Security headers
     app.use(helmet());
     // Validation across GraphQL/REST inputs

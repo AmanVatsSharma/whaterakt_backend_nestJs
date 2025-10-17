@@ -138,6 +138,23 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   CORS_ORIGINS: string;
+
+  // Feature flags
+  @IsString()
+  @IsOptional()
+  FEATURE_INBOX_ENABLED: string;
+
+  @IsString()
+  @IsOptional()
+  FEATURE_AUTOMATIONS_ENABLED: string;
+
+  @IsString()
+  @IsOptional()
+  FEATURE_SEGMENTATION_ENABLED: string;
+
+  @IsString()
+  @IsOptional()
+  FEATURE_COMPLIANCE_ENABLED: string;
 }
 
 export function validateConfig(config: Record<string, unknown>) {

@@ -141,16 +141,21 @@ export class WhatsAppWebhookController {
 
             // Basic compliance: record OPT_OUT/OPT_IN keywords and trigger automations
             try {
+              const features = process.env;
               const lower = (text || '').trim().toLowerCase();
               if (tenantId && from && lower) {
-                if (lower === 'stop' || lower === 'unsubscribe') {
-                  await this.prisma.consentLog.create({ data: { tenantId, contactId: contact?.id, type: 'OPT_OUT', channel: 'WHATSAPP' } });
-                  await this.prisma.contact.update({ where: { id: contact!.id }, data: { subscribed: false } });
-                } else if (lower === 'start' || lower === 'subscribe') {
-                  await this.prisma.consentLog.create({ data: { tenantId, contactId: contact?.id, type: 'OPT_IN', channel: 'WHATSAPP' } });
-                  await this.prisma.contact.update({ where: { id: contact!.id }, data: { subscribed: true } });
+                if (!features.FEATURE_COMPLIANCE_ENABLED || features.FEATURE_COMPLIANCE_ENABLED === 'true') {
+                  if (lower === 'stop' || lower === 'unsubscribe') {
+                    await this.prisma.consentLog.create({ data: { tenantId, contactId: contact?.id, type: 'OPT_OUT', channel: 'WHATSAPP' } });
+                    await this.prisma.contact.update({ where: { id: contact!.id }, data: { subscribed: false } });
+                  } else if (lower === 'start' || lower === 'subscribe') {
+                    await this.prisma.consentLog.create({ data: { tenantId, contactId: contact?.id, type: 'OPT_IN', channel: 'WHATSAPP' } });
+                    await this.prisma.contact.update({ where: { id: contact!.id }, data: { subscribed: true } });
+                  }
                 }
-                await this.automations.handleInboundKeyword(tenantId, from, lower);
+                if (!features.FEATURE_AUTOMATIONS_ENABLED || features.FEATURE_AUTOMATIONS_ENABLED === 'true') {
+                  await this.automations.handleInboundKeyword(tenantId, from, lower);
+                }
               }
             } catch {}
           }

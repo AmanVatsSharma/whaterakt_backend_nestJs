@@ -16,6 +16,7 @@ import { BullModule } from '@nestjs/bull';
 import { WhatsAppModule } from './whatsapp/whatsapp.module';
 import { InboxModule } from './inbox/inbox.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import { InMemoryMessageQueue } from './core/queues/in-memory.queue';
 import { HealthModule } from './health/health.module';
@@ -25,6 +26,7 @@ import { AIService } from './ai/ai.service';
 import { HttpModule } from '@nestjs/axios';
 import { SecurityMiddleware } from './core/middlewares/security.middleware';
 import { TenantMiddleware } from './core/middlewares/tenant.middleware';
+import { RequestIdMiddleware } from './core/middlewares/request-id.middleware';
 
 const logger = new Logger('BullModule');
 
@@ -71,12 +73,10 @@ const logger = new Logger('BullModule');
     TenantModule,
     ScheduleModule.forRoot(),
     WhatsAppModule,
-    InboxModule,
     AnalyticsModule,
     HealthModule,
     MetricsModule,
     HttpModule,
-    AutomationsModule,
   ],
   providers: [
     PrismaService,
@@ -88,7 +88,7 @@ const logger = new Logger('BullModule');
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(SecurityMiddleware)
+      .apply(RequestIdMiddleware, SecurityMiddleware)
       .forRoutes('*');
 
     // Ensure tenant is resolved for all GraphQL and API requests.
