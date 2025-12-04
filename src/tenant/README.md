@@ -6,7 +6,7 @@ We are evolving this module into the control plane for enterprise-grade multi-te
 - **Plan tiers**: capture plan, feature flags, quotas on the tenant row (TypeORM entity already includes plan/status/region).
 - **Lifecycle hooks**: onboarding approvals, suspension/reactivation, regional routing.
 - **Quotas**: track campaign/message limits and surface them to metrics + rate limit guards.
-- **Auditability**: every tenant mutation must log to our request context for later review.
+- **Auditability & Access Control**: every tenant mutation logs into the request context, and sensitive GraphQL operations are wrapped with `@RequirePermissions` + `RbacGuard` (`tenant:manage` today).
 
 ## Flow Chart
 
@@ -16,7 +16,7 @@ We are evolving this module into the control plane for enterprise-grade multi-te
         v
  TenantService -> Prisma (today)
                -> TypeORM TenantOrmEntity (soon, dual-write)
-               -> Emits events for billing/quota services
+               -> Seeds RBAC defaults + emits events for billing/quota services
 ```
 
 ## Next Steps

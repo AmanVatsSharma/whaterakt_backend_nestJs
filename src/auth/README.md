@@ -7,6 +7,7 @@ This module centralizes every authentication surface in GraphQL and keeps the fe
 - **Password login with MFA challenges** backed by scalable Redis storage.
 - **TOTP-based MFA enrollment** with encrypted secrets, hashed backup codes, and controller helpers for QR streaming.
 - **Instrumentation/logging** at each layer to make live-debugging trivial.
+- **TypeORM dual-write** mirrors every user mutation (signup, MFA changes, backup code burn) when `TYPEORM_DUAL_WRITE_ENABLED` is true, and automatically assigns the Owner role through the RBAC service so tenants start with a privileged user.
 
 ## Flow Chart
 
