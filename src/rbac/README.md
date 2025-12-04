@@ -20,4 +20,10 @@ We need granular RBAC for enterprise tenants. This module introduces TypeORM ent
 - `assignRole(tenantId, userId, roleName)` for onboarding flows.
 - `hasAccess(userId, resource, action)` for guards. TODOs remain for plan entitlements, attribute-based policies, and caching.
 
+## Guard & Decorator
+- `RbacGuard` enforces permissions in GraphQL/REST handlers. Use `@UseGuards(RbacGuard)` and tag resolvers with `@RequirePermissions({ resource, action })`.
+
+## Seed Data
+- `seedRbacDefaults` is triggered when tenants are mirrored to TypeORM to ensure every workspace gets default permissions/Owner role. This keeps RBAC consistent during the Prisma→TypeORM dual-write phase.
+
 Pair this README with guard/resolver updates as we expose GraphQL decorators. Always log RBAC decisions (done in `RbacService`) for audit trails.

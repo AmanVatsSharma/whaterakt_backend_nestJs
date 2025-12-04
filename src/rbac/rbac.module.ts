@@ -5,10 +5,11 @@ import { RoleEntity } from './entities/role.entity';
 import { PermissionEntity } from './entities/permission.entity';
 import { UserRoleEntity } from './entities/user-role.entity';
 import { RolePermissionEntity } from './entities/role-permission.entity';
+import { RbacGuard } from './rbac.guard';
 
 @Module({
   imports: [TypeOrmModule.forFeature([RoleEntity, PermissionEntity, UserRoleEntity, RolePermissionEntity])],
-  providers: [RbacService],
-  exports: [RbacService],
+  providers: [RbacService, RbacGuard],
+  exports: [RbacService, RbacGuard],
 })
 export class RbacModule {}

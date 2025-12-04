@@ -8,6 +8,7 @@ import { MfaService } from './mfa.service';
 import * as bcrypt from 'bcryptjs';
 import { ConfigService } from '@nestjs/config';
 import { UserWriteRepository } from '../database/repositories/user-write.repository';
+import { RbacService } from '../rbac/rbac.service';
 
 const prismaMock = {
   user: {
@@ -42,6 +43,10 @@ const userWriteRepositoryMock = {
   upsertFromPrisma: jest.fn(),
 };
 
+const rbacServiceMock = {
+  assignRole: jest.fn(),
+};
+
 describe('AuthService', () => {
   let service: AuthService;
 
@@ -58,6 +63,7 @@ describe('AuthService', () => {
         { provide: 'REDIS_CLIENT', useValue: null },
         { provide: ConfigService, useValue: configServiceMock },
         { provide: UserWriteRepository, useValue: userWriteRepositoryMock },
+        { provide: RbacService, useValue: rbacServiceMock },
       ],
     }).compile();
 

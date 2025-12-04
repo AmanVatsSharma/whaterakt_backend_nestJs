@@ -14,6 +14,7 @@ import { MfaVerifyInput } from './dto/mfa-verify.input';
 import { MfaEnrollmentVerifyInput } from './dto/mfa-enroll-verify.input';
 import { ConfigService } from '@nestjs/config';
 import { UserWriteRepository } from '../database/repositories/user-write.repository';
+import { RbacService } from '../rbac/rbac.service';
 
 type ChallengeRecord = {
   userId: string;
@@ -48,6 +49,7 @@ export class AuthService {
     private readonly mfaService: MfaService,
     private readonly configService: ConfigService,
     private readonly userWriteRepository: UserWriteRepository,
+    private readonly rbacService: RbacService,
     @Inject('REDIS_CLIENT') private readonly redis: Redis | null
   ) {}
 
@@ -230,6 +232,7 @@ export class AuthService {
     });
     const normalized = this.normalizeUser(created);
     await this.mirrorUser(normalized);
+    await this.assignOwnerRole(normalized);
     return normalized;
   }
 
@@ -368,6 +371,18 @@ export class AuthService {
       });
     } catch (error) {
       console.error('[AuthService] Failed to dual-write user', { userId: user.id, error });
+      this.metrics.incrementDualWriteFailure('user');
+    }
+  }
+
+  private async assignOwnerRole(user: AuthUser) {
+    if (!this.isDualWriteEnabled()) {
+      return;
+    }
+    try {
+      await this.rbacService.assignRole(user.tenantId, user.id, 'Owner');
+    } catch (error) {
+      console.error('[AuthService] Failed to assign Owner role', { userId: user.id, error });
       this.metrics.incrementDualWriteFailure('user');
     }
   }

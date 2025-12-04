@@ -11,6 +11,7 @@ import { MetricsModule } from '../metrics/metrics.module';
 import { AuthController } from './auth.controller';
 import { MfaService } from './mfa.service';
 import { DatabaseModule } from '../database/database.module';
+import { RbacModule } from '../rbac/rbac.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { DatabaseModule } from '../database/database.module';
     TenantModule,
     MetricsModule,
     DatabaseModule,
+    RbacModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, PrismaService, AuthResolver, MfaService],
