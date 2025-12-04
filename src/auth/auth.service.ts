@@ -12,6 +12,8 @@ import { LoginInput } from './dto/login.input';
 import { AuthPayload, RegisteredUserPayload, MfaEnrollmentPayload, MfaStatusPayload } from './entities/auth.entity';
 import { MfaVerifyInput } from './dto/mfa-verify.input';
 import { MfaEnrollmentVerifyInput } from './dto/mfa-enroll-verify.input';
+import { ConfigService } from '@nestjs/config';
+import { UserWriteRepository } from '../database/repositories/user-write.repository';
 
 type ChallengeRecord = {
   userId: string;
@@ -28,6 +30,9 @@ type AuthUser = {
   mfaEnabled: boolean;
   mfaSecret: string | null;
   mfaBackupCodes: string[];
+  phone?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 @Injectable()
@@ -41,6 +46,8 @@ export class AuthService {
     private tenantService: TenantService,
     private readonly metrics: MetricsService,
     private readonly mfaService: MfaService,
+    private readonly configService: ConfigService,
+    private readonly userWriteRepository: UserWriteRepository,
     @Inject('REDIS_CLIENT') private readonly redis: Redis | null
   ) {}
 
@@ -117,7 +124,7 @@ export class AuthService {
     const artifacts = await this.mfaService.generateArtifacts(user.email, tenant?.name);
     const hashedBackupCodes = await this.hashBackupCodes(artifacts.backupCodes);
 
-    await this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         mfaSecret: artifacts.encryptedSecret,
@@ -125,6 +132,7 @@ export class AuthService {
         mfaEnabled: false,
       },
     });
+    await this.mirrorUser(this.normalizeUser(updated));
 
     return {
       otpauthUrl: artifacts.keyUri,
@@ -145,12 +153,13 @@ export class AuthService {
     }
 
     await this.validateMfaToken(user, input.token);
-    await this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: user.id },
       data: { mfaEnabled: true },
     });
     this.metrics.incrementAuthEvent('mfa_verified');
 
+    await this.mirrorUser(this.normalizeUser(updated));
     return { userId: user.id, mfaEnabled: true };
   }
 
@@ -219,7 +228,9 @@ export class AuthService {
         tenantId: tenant.id,
       },
     });
-    return this.normalizeUser(created);
+    const normalized = this.normalizeUser(created);
+    await this.mirrorUser(normalized);
+    return normalized;
   }
 
   /**
@@ -307,10 +318,11 @@ export class AuthService {
       const matches = await bcrypt.compare(providedCode, hashes[i]);
       if (matches) {
         const remaining = hashes.filter((_, idx) => idx !== i);
-        await this.prisma.user.update({
+        const updated = await this.prisma.user.update({
           where: { id: user.id },
           data: { mfaBackupCodes: remaining },
         });
+        await this.mirrorUser(this.normalizeUser(updated));
         return;
       }
     }
@@ -333,6 +345,33 @@ export class AuthService {
     }
   }
 
+  private isDualWriteEnabled() {
+    return this.configService.get('TYPEORM_DUAL_WRITE_ENABLED') === 'true';
+  }
+
+  private async mirrorUser(user: AuthUser) {
+    if (!this.isDualWriteEnabled()) {
+      return;
+    }
+    try {
+      await this.userWriteRepository.upsertFromPrisma({
+        id: user.id,
+        email: user.email,
+        password: user.password,
+        tenantId: user.tenantId,
+        phone: user.phone ?? null,
+        mfaEnabled: user.mfaEnabled,
+        mfaSecret: user.mfaSecret,
+        mfaBackupCodes: user.mfaBackupCodes,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      });
+    } catch (error) {
+      console.error('[AuthService] Failed to dual-write user', { userId: user.id, error });
+      this.metrics.incrementDualWriteFailure('user');
+    }
+  }
+
   private normalizeUser(record: any): AuthUser {
     return {
       id: record.id,
@@ -342,6 +381,9 @@ export class AuthService {
       mfaEnabled: Boolean(record.mfaEnabled),
       mfaSecret: record.mfaSecret ?? null,
       mfaBackupCodes: record.mfaBackupCodes ?? [],
+      phone: record.phone ?? null,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
     };
   }
 }

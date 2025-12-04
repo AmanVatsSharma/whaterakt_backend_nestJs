@@ -6,6 +6,8 @@ import { PrismaService } from 'src/prisma.service';
 import { MetricsService } from '../metrics/metrics.service';
 import { MfaService } from './mfa.service';
 import * as bcrypt from 'bcryptjs';
+import { ConfigService } from '@nestjs/config';
+import { UserWriteRepository } from '../database/repositories/user-write.repository';
 
 const prismaMock = {
   user: {
@@ -22,6 +24,7 @@ const tenantServiceMock = {
 
 const metricsMock = {
   incrementAuthEvent: jest.fn(),
+  incrementDualWriteFailure: jest.fn(),
 };
 
 const mfaServiceMock = {
@@ -29,6 +32,14 @@ const mfaServiceMock = {
   renderQrFromSecret: jest.fn(),
   decryptSecret: jest.fn(),
   verifyToken: jest.fn(),
+};
+
+const configServiceMock = {
+  get: jest.fn().mockReturnValue('false'),
+};
+
+const userWriteRepositoryMock = {
+  upsertFromPrisma: jest.fn(),
 };
 
 describe('AuthService', () => {
@@ -45,6 +56,8 @@ describe('AuthService', () => {
         { provide: MetricsService, useValue: metricsMock },
         { provide: MfaService, useValue: mfaServiceMock },
         { provide: 'REDIS_CLIENT', useValue: null },
+        { provide: ConfigService, useValue: configServiceMock },
+        { provide: UserWriteRepository, useValue: userWriteRepositoryMock },
       ],
     }).compile();
 
@@ -62,6 +75,8 @@ describe('AuthService', () => {
       mfaEnabled: false,
       mfaSecret: null,
       mfaBackupCodes: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     const payload = await service.registerTenantOwner({
@@ -88,6 +103,8 @@ describe('AuthService', () => {
       mfaEnabled: false,
       mfaSecret: null,
       mfaBackupCodes: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     tenantServiceMock.findById.mockResolvedValueOnce({ id: 'tenant-2', name: 'Tenant' });
 
@@ -110,6 +127,8 @@ describe('AuthService', () => {
       mfaEnabled: false,
       mfaSecret: null,
       mfaBackupCodes: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     await expect(

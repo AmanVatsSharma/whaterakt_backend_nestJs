@@ -10,6 +10,7 @@ import { TenantModule } from '../tenant/tenant.module';
 import { MetricsModule } from '../metrics/metrics.module';
 import { AuthController } from './auth.controller';
 import { MfaService } from './mfa.service';
+import { DatabaseModule } from '../database/database.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { MfaService } from './mfa.service';
     }),
     TenantModule,
     MetricsModule,
+    DatabaseModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, PrismaService, AuthResolver, MfaService],

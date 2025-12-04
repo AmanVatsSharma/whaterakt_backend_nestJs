@@ -25,7 +25,7 @@ export class TenantOrmEntity extends BaseOrmEntity {
   region: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  featureFlags?: Record<string, boolean>;
+  featureFlags?: Record<string, boolean> | null;
 
   @OneToMany(() => UserOrmEntity, (user) => user.tenant)
   users?: UserOrmEntity[];

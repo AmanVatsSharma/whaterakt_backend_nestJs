@@ -21,7 +21,7 @@ We need a staged migration where Tenant + User data is persisted to both Prisma 
 ### Phase A – Repository Layer
 - Create `TenantRepository` and `UserRepository` that extend `TenantAwareRepository`.
 - Inject them into `TenantService` and `AuthService`.
-- Add feature flag `TYPEORM_DUAL_WRITE_ENABLED` (env var) so we can toggle TypeORM writes without redeploying.
+- Add feature flag `TYPEORM_DUAL_WRITE_ENABLED` (env var; now present in `.env.example`) so we can toggle TypeORM writes without redeploying.
 
 ### Phase B – Dual Write
 - On create/update/delete operations for tenants + users:

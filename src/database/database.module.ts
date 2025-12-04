@@ -4,6 +4,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { buildTypeOrmConfig } from './database.config';
 import { TenantOrmEntity } from './entities/tenant.entity';
 import { UserOrmEntity } from './entities/user.entity';
+import { TenantWriteRepository } from './repositories/tenant-write.repository';
+import { UserWriteRepository } from './repositories/user-write.repository';
 
 @Global()
 @Module({
@@ -16,6 +18,7 @@ import { UserOrmEntity } from './entities/user.entity';
     }),
     TypeOrmModule.forFeature([TenantOrmEntity, UserOrmEntity]),
   ],
-  exports: [TypeOrmModule],
+  providers: [TenantWriteRepository, UserWriteRepository],
+  exports: [TypeOrmModule, TenantWriteRepository, UserWriteRepository],
 })
 export class DatabaseModule {}
