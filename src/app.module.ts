@@ -17,7 +17,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bull';
 import { WhatsAppModule } from './whatsapp/whatsapp.module';
 // inbox and automations will be conditionally imported via OPTIONAL_MODULES
-import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import { InMemoryMessageQueue } from './core/queues/in-memory.queue';
 import { HealthModule } from './health/health.module';
@@ -28,6 +27,8 @@ import { HttpModule } from '@nestjs/axios';
 import { SecurityMiddleware } from './core/middlewares/security.middleware';
 import { TenantMiddleware } from './core/middlewares/tenant.middleware';
 import { RequestIdMiddleware } from './core/middlewares/request-id.middleware';
+import { DatabaseModule } from './database/database.module';
+import { RbacModule } from './rbac/rbac.module';
 
 const logger = new Logger('BullModule');
 
@@ -72,6 +73,7 @@ const OPTIONAL_MODULES: any[] = [
       }),
       inject: [ConfigService],
     }),
+    DatabaseModule,
     AuthModule,
     CampaignModule,
     ContactModule,
@@ -84,6 +86,7 @@ const OPTIONAL_MODULES: any[] = [
     AnalyticsModule,
     HealthModule,
     MetricsModule,
+    RbacModule,
     HttpModule,
     ...OPTIONAL_MODULES,
   ],

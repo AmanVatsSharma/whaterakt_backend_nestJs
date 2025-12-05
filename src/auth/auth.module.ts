@@ -7,6 +7,11 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthResolver } from './auth.resolver';
 import { PrismaService } from 'src/prisma.service';
 import { TenantModule } from '../tenant/tenant.module';
+import { MetricsModule } from '../metrics/metrics.module';
+import { AuthController } from './auth.controller';
+import { MfaService } from './mfa.service';
+import { DatabaseModule } from '../database/database.module';
+import { RbacModule } from '../rbac/rbac.module';
 
 @Module({
   imports: [
@@ -20,8 +25,12 @@ import { TenantModule } from '../tenant/tenant.module';
       inject: [ConfigService],
     }),
     TenantModule,
+    MetricsModule,
+    DatabaseModule,
+    RbacModule,
   ],
-  providers: [AuthService, JwtStrategy, PrismaService, AuthResolver],
+  controllers: [AuthController],
+  providers: [AuthService, JwtStrategy, PrismaService, AuthResolver, MfaService],
   exports: [JwtStrategy, PassportModule],
 })
 export class AuthModule {}

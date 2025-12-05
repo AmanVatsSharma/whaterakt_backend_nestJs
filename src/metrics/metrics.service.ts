@@ -24,6 +24,19 @@ export class MetricsService implements OnModuleInit {
     labelNames: ['tenantId']
   });
 
+
+  private readonly dualWriteFailureCounter = new Counter({
+    name: 'dual_write_failures_total',
+    help: 'Number of failed Prisma -> TypeORM mirrors',
+    labelNames: ['entity']
+  });
+
+  private readonly authEventsCounter = new Counter({
+    name: 'auth_events_total',
+    help: 'Authentication events grouped by operation',
+    labelNames: ['event']
+  });
+
   constructor() {
     this.registry = new Registry();
     
@@ -43,6 +56,8 @@ export class MetricsService implements OnModuleInit {
     this.registry.registerMetric(this.tenantMessagesCounter);
     this.registry.registerMetric(this.campaignDeliveryCounter);
     this.registry.registerMetric(this.rateLimitBlocksCounter);
+    this.registry.registerMetric(this.authEventsCounter);
+    this.registry.registerMetric(this.dualWriteFailureCounter);
 
     // Default Node.js/process metrics
     collectDefaultMetrics({ register: this.registry });
@@ -74,5 +89,13 @@ export class MetricsService implements OnModuleInit {
 
   incrementRateLimitBlock(tenantId: string) {
     this.rateLimitBlocksCounter.inc({ tenantId });
+  }
+
+  incrementAuthEvent(event: 'register' | 'login' | 'mfa_challenge' | 'mfa_verified') {
+    this.authEventsCounter.inc({ event });
+  }
+
+  incrementDualWriteFailure(entity: 'tenant' | 'user') {
+    this.dualWriteFailureCounter.inc({ entity });
   }
 } 
