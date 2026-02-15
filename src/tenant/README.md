@@ -14,15 +14,13 @@ We are evolving this module into the control plane for enterprise-grade multi-te
 [Signup/Register GraphQL]
         |
         v
- TenantService -> Prisma (today)
-               -> TypeORM TenantOrmEntity (soon, dual-write)
+ TenantService -> TypeORM TenantOrmEntity
                -> Seeds RBAC defaults + emits events for billing/quota services
 ```
 
 ## Next Steps
-1. Dual-write tenant creation to TypeORM via a dedicated repository.
-2. Expose admin mutations/resolvers for plan management with RBAC enforcement.
-3. Add background jobs detecting dormant tenants and syncing with billing providers.
-4. Tighten middleware so every request carries tenant metadata + feature map.
+1. Add admin mutations/resolvers for plan management with RBAC enforcement.
+2. Add background jobs detecting dormant tenants and syncing with billing providers.
+3. Tighten middleware so every request carries tenant metadata + feature map.
 
 Keep this document in sync with code changes so ops teams can validate expectations quickly.
