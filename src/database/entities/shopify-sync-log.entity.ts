@@ -2,7 +2,7 @@
 * File: src/database/entities/shopify-sync-log.entity.ts
 * Module: database
 * Purpose: Audit log for Shopify sync execution runs.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Tracks lifecycle states STARTED/COMPLETED/FAILED.

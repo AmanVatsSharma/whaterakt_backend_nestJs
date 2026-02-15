@@ -2,7 +2,7 @@
 * File: src/database/entities/shopify-order.entity.ts
 * Module: database
 * Purpose: Cached Shopify order mirror for tenant reporting/use-cases.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Unique by tenant + Shopify order id.

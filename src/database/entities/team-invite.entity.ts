@@ -2,7 +2,7 @@
 * File: src/database/entities/team-invite.entity.ts
 * Module: database
 * Purpose: Invitation model for team onboarding.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Token is unique and used as invite acceptance lookup key.
