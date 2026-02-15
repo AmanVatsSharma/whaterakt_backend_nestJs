@@ -1,4 +1,14 @@
-import { Resolver, Mutation, Args } from '@nestjs/graphql';
+/**
+* File: src/auth/auth.resolver.ts
+* Module: auth
+* Purpose: GraphQL resolver entrypoints for authentication and MFA flows.
+* Author: Aman Sharma / Novologic/ Codex
+* Last-updated: 2026-02-15
+* Notes:
+* - Delegates business logic to AuthService.
+* - Rate limiting is enforced on public auth mutations.
+*/
+import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
 import { UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -20,7 +30,6 @@ export class AuthResolver {
   @ApiOperation({ summary: 'Register tenant owner without logging in' })
   @ApiOkResponse({ description: 'Returns registered user + tenant ids' })
   async registerTenantOwner(@Args('input') input: SignupInput) {
-    console.log('[AuthResolver] registerTenantOwner mutation hit', { email: input.email });
     return this.authService.registerTenantOwner(input);
   }
 
@@ -29,7 +38,6 @@ export class AuthResolver {
   @ApiOperation({ summary: 'Register and immediately log in (direct onboarding)' })
   @ApiOkResponse({ description: 'Returns tokens unless MFA pending' })
   async registerAndLogin(@Args('input') input: SignupInput) {
-    console.log('[AuthResolver] registerAndLogin mutation hit', { email: input.email });
     return this.authService.registerAndLogin(input);
   }
 
@@ -38,7 +46,6 @@ export class AuthResolver {
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiOkResponse({ description: 'Returns JWT + tenant or MFA challenge' })
   async login(@Args('input') input: LoginInput) {
-    console.log('[AuthResolver] login mutation hit', { email: input.email });
     return this.authService.loginWithPassword(input);
   }
 
@@ -47,7 +54,6 @@ export class AuthResolver {
   @ApiOperation({ summary: 'Complete MFA login challenge' })
   @ApiOkResponse({ description: 'Issues JWT after MFA success' })
   async completeMfaLogin(@Args('input') input: MfaVerifyInput) {
-    console.log('[AuthResolver] completeMfaLogin mutation hit', { challengeId: input.challengeId });
     return this.authService.completeMfaChallenge(input);
   }
 
@@ -55,7 +61,6 @@ export class AuthResolver {
   @ApiOperation({ summary: 'Begin MFA enrollment' })
   @ApiOkResponse({ description: 'Returns otpauth URL + QR + backup codes' })
   async beginMfaEnrollment(@Args('input') input: MfaEnrollmentInput) {
-    console.log('[AuthResolver] beginMfaEnrollment mutation hit', { userId: input.userId });
     return this.authService.beginMfaEnrollment(input.userId);
   }
 
@@ -63,7 +68,6 @@ export class AuthResolver {
   @ApiOperation({ summary: 'Verify MFA enrollment token' })
   @ApiOkResponse({ description: 'Returns MFA status' })
   async verifyMfaEnrollment(@Args('input') input: MfaEnrollmentVerifyInput) {
-    console.log('[AuthResolver] verifyMfaEnrollment mutation hit', { userId: input.userId });
     return this.authService.verifyMfaEnrollment(input);
   }
 }
