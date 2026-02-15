@@ -2,7 +2,7 @@
  * File: src/modules/shopify-integration/shopify-integration.module.ts
  * Module: shopify-integration
  * Purpose: Wire Shopify integration controller/service for tenant sync workflows.
- * Author: Aman Sharma / Novologic/ Codex
+ * Author: Aman Sharma / Vedpragya/ Codex
  * Last-updated: 2026-02-15
  * Notes:
  * - This module is HTTP-first for BFF consumption.

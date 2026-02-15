@@ -2,7 +2,7 @@
  * File: src/modules/shopify-integration/controllers/shopify-integration.controller.ts
  * Module: shopify-integration
  * Purpose: HTTP endpoints for Shopify OAuth/connect/sync/webhook flows.
- * Author: Aman Sharma / Novologic/ Codex
+ * Author: Aman Sharma / Vedpragya/ Codex
  * Last-updated: 2026-02-15
  * Notes:
  * - Tenant id is resolved from middleware context or header fallback.
