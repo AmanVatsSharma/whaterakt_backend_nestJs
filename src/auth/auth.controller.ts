@@ -1,4 +1,14 @@
-import { Controller, Get, Param, Res, NotFoundException } from '@nestjs/common';
+/**
+* File: src/auth/auth.controller.ts
+* Module: auth
+* Purpose: HTTP endpoints for auth operations not ideal in GraphQL.
+* Author: Aman Sharma / Novologic/ Codex
+* Last-updated: 2026-02-15
+* Notes:
+* - Exposes QR streaming endpoint for MFA enrollment UX.
+* - Delegates all security/business checks to AuthService.
+*/
+import { Controller, Get, NotFoundException, Param, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -16,7 +26,6 @@ export class AuthController {
   @ApiOperation({ summary: 'Stream MFA QR code for authenticator enrollment' })
   @ApiOkResponse({ description: 'PNG image containing the MFA QR code' })
   async streamMfaQr(@Param('userId') userId: string, @Res() res: Response) {
-    console.log('[AuthController] Streaming MFA QR request received', { userId });
     const buffer = await this.authService.getQrCodeForUser(userId);
 
     if (!buffer) {
