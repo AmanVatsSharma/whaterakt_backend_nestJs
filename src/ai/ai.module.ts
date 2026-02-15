@@ -3,11 +3,12 @@ import { HttpModule } from '@nestjs/axios';
 import { AIService } from './ai.service';
 import { AiResolver } from './ai.resolver';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-
-export const AI_PROVIDER = 'AI_PROVIDER';
+import { AiController } from './ai.controller';
+import { AI_PROVIDER } from './ai.constants';
 
 @Module({
   imports: [HttpModule, ConfigModule],
+  controllers: [AiController],
   providers: [
     AiResolver,
     AIService,
