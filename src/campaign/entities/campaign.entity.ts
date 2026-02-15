@@ -1,5 +1,16 @@
-import { ObjectType, Field, ID } from '@nestjs/graphql';
-import { CampaignType, CampaignStatus } from '@prisma/client';
+/**
+* File: src/campaign/entities/campaign.entity.ts
+* Module: campaign
+* Purpose: GraphQL campaign object type.
+* Author: Aman Sharma / Novologic/ Codex
+* Last-updated: 2026-02-15
+* Notes:
+* - Uses local campaign enums registered in GraphQL.
+* - Mirrors the fields returned by campaign service queries.
+*/
+import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { CampaignStatus } from '../enums/campaign-status.enum';
+import { CampaignType } from '../enums/campaign-type.enum';
 
 @ObjectType({ description: 'A campaign aggregates and schedules WhatsApp messages' })
 export class Campaign {
