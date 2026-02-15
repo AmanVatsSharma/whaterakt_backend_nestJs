@@ -1,0 +1,86 @@
+[
+  ["database/entities/automation.entity.ts", "database/entities/tenant.entity.ts"],
+  ["database/entities/campaign.entity.ts", "database/entities/message.entity.ts"],
+  ["database/entities/contact.entity.ts", "database/entities/contact-tag.entity.ts"],
+  ["database/entities/contact-tag.entity.ts", "database/entities/tag.entity.ts"],
+  [
+    "database/entities/conversation.entity.ts",
+    "database/entities/contact.entity.ts",
+    "database/entities/contact-tag.entity.ts",
+    "database/entities/tag.entity.ts",
+    "database/entities/conversation-tag.entity.ts"
+  ],
+  ["database/entities/tag.entity.ts", "database/entities/conversation-tag.entity.ts"],
+  [
+    "database/entities/tenant.entity.ts",
+    "database/entities/campaign.entity.ts",
+    "database/entities/message.entity.ts",
+    "database/entities/conversation.entity.ts",
+    "database/entities/contact.entity.ts",
+    "database/entities/contact-tag.entity.ts",
+    "database/entities/tag.entity.ts"
+  ],
+  ["database/entities/conversation.entity.ts", "database/entities/contact.entity.ts"],
+  ["database/entities/contact.entity.ts", "database/entities/group.entity.ts"],
+  [
+    "database/entities/tenant.entity.ts",
+    "database/entities/campaign.entity.ts",
+    "database/entities/message.entity.ts",
+    "database/entities/conversation.entity.ts",
+    "database/entities/contact.entity.ts"
+  ],
+  [
+    "database/entities/campaign.entity.ts",
+    "database/entities/message.entity.ts",
+    "database/entities/conversation.entity.ts",
+    "database/entities/contact.entity.ts",
+    "database/entities/user.entity.ts"
+  ],
+  ["database/entities/contact.entity.ts", "database/entities/user.entity.ts"],
+  [
+    "database/entities/conversation.entity.ts",
+    "database/entities/contact.entity.ts",
+    "database/entities/user.entity.ts",
+    "database/entities/conversation-note.entity.ts"
+  ],
+  ["database/entities/user.entity.ts", "database/entities/conversation-note.entity.ts"],
+  [
+    "database/entities/conversation.entity.ts",
+    "database/entities/contact.entity.ts",
+    "database/entities/user.entity.ts"
+  ],
+  [
+    "database/entities/tenant.entity.ts",
+    "database/entities/campaign.entity.ts",
+    "database/entities/message.entity.ts",
+    "database/entities/conversation.entity.ts",
+    "database/entities/contact.entity.ts",
+    "database/entities/user.entity.ts",
+    "database/entities/template.entity.ts"
+  ],
+  ["database/entities/user.entity.ts", "database/entities/template.entity.ts"],
+  [
+    "database/entities/tenant.entity.ts",
+    "database/entities/campaign.entity.ts",
+    "database/entities/message.entity.ts",
+    "database/entities/conversation.entity.ts",
+    "database/entities/contact.entity.ts",
+    "database/entities/user.entity.ts"
+  ],
+  ["database/entities/message.entity.ts", "database/entities/conversation.entity.ts"],
+  [
+    "database/entities/tenant.entity.ts",
+    "database/entities/campaign.entity.ts",
+    "database/entities/message.entity.ts",
+    "database/entities/conversation.entity.ts"
+  ],
+  ["database/entities/tenant.entity.ts", "database/entities/campaign.entity.ts", "database/entities/message.entity.ts"],
+  ["database/entities/tenant.entity.ts", "database/entities/campaign.entity.ts"],
+  ["database/entities/tenant.entity.ts", "database/entities/consent-log.entity.ts"],
+  ["database/entities/team-invite.entity.ts", "database/entities/team.entity.ts"],
+  ["database/entities/team.entity.ts", "database/entities/team-member.entity.ts"],
+  ["rbac/entities/permission.entity.ts", "rbac/entities/role-permission.entity.ts"],
+  ["rbac/entities/role-permission.entity.ts", "rbac/entities/role.entity.ts"],
+  ["rbac/entities/role.entity.ts", "rbac/entities/user-role.entity.ts"],
+  ["rbac/rbac.guard.ts", "rbac/rbac.decorator.ts"]
+]
