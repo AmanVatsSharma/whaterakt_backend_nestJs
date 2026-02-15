@@ -1,13 +1,22 @@
+/**
+* File: src/template/template.module.ts
+* Module: template
+* Purpose: Template module for syncing and validating WhatsApp templates.
+* Author: Aman Sharma / Vedpragya/ Codex
+* Last-updated: 2026-02-15
+* Notes:
+* - Service persists provider templates through TypeORM.
+* - Resolver remains thin and delegates template operations.
+*/
 import { Module } from '@nestjs/common';
 import { TemplateResolver } from './template.resolver';
 import { TemplateService } from './template.service';
-import { PrismaService } from 'src/prisma.service';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [HttpModule, ConfigModule],
-  providers: [TemplateResolver, TemplateService, PrismaService],
+  providers: [TemplateResolver, TemplateService],
   exports: [TemplateService],
 })
 export class TemplateModule {}
