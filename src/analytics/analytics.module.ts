@@ -9,9 +9,11 @@
 * - Tenant guard enforces workspace-level visibility.
 */
 import { Module } from '@nestjs/common';
+import { WhatsAppOnboardingModule } from '../modules/whatsapp-onboarding';
 import { AnalyticsResolver } from './analytics.resolver';
 
 @Module({
+  imports: [WhatsAppOnboardingModule],
   providers: [AnalyticsResolver],
 })
 export class AnalyticsModule {}

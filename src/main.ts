@@ -35,6 +35,16 @@ async function bootstrap() {
         req.rawBody = buf?.toString('utf8');
       }
     }));
+    app.use('/shopify/webhook/customers', json({
+      verify: (req: any, _res, buf) => {
+        req.rawBody = buf?.toString('utf8');
+      }
+    }));
+    app.use('/shopify/webhook/products', json({
+      verify: (req: any, _res, buf) => {
+        req.rawBody = buf?.toString('utf8');
+      }
+    }));
     // Structured logging with request ids
     app.use(pinoHttp({
       logger: appPinoLogger,

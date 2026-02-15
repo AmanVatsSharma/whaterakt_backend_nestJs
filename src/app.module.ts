@@ -41,6 +41,7 @@ import { RbacModule } from './rbac/rbac.module';
 import { IntegrationsModule } from './modules/integrations';
 import { ShopifyIntegrationModule } from './modules/shopify-integration';
 import { TeamOnboardingModule } from './modules/team-onboarding';
+import { WhatsAppOnboardingModule } from './modules/whatsapp-onboarding';
 
 const logger = new Logger('BullModule');
 
@@ -102,6 +103,7 @@ const OPTIONAL_MODULES: any[] = [
     IntegrationsModule,
     ShopifyIntegrationModule,
     TeamOnboardingModule,
+    WhatsAppOnboardingModule,
     HttpModule,
     ...OPTIONAL_MODULES,
   ],
@@ -125,6 +127,8 @@ export class AppModule {
         { path: 'webhooks/whatsapp', method: RequestMethod.ALL },
         { path: 'shopify/oauth/callback', method: RequestMethod.ALL },
         { path: 'shopify/webhook/orders', method: RequestMethod.ALL },
+        { path: 'shopify/webhook/customers', method: RequestMethod.ALL },
+        { path: 'shopify/webhook/products', method: RequestMethod.ALL },
         { path: 'health', method: RequestMethod.ALL },
         { path: 'metrics', method: RequestMethod.ALL },
       )
