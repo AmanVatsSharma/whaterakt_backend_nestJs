@@ -1,14 +1,25 @@
+/**
+* File: src/whatsapp/whatsapp.module.ts
+* Module: whatsapp
+* Purpose: WhatsApp delivery and webhook orchestration module.
+* Author: Aman Sharma / Vedpragya/ Codex
+* Last-updated: 2026-02-15
+* Notes:
+* - Queue processor and webhook controller persist state via TypeORM.
+* - Automations module is imported for keyword-based responses.
+*/
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { WhatsAppService } from './whatsapp.service';
 import { WhatsAppResolver } from './whatsapp.resolver';
-import { PrismaService } from 'src/prisma.service';
 import { WhatsAppProcessor } from './whatsapp.processor';
 import { WhatsAppAdapter } from './whatsapp.adapter';
 import { WhatsAppWebhookController } from './webhook.controller';
 import { AutomationsModule } from '../automations/automations.module';
+import { MetricsModule } from '../metrics/metrics.module';
+import { WhatsAppOnboardingModule } from '../modules/whatsapp-onboarding';
 
 @Module({
   imports: [
@@ -22,6 +33,8 @@ import { AutomationsModule } from '../automations/automations.module';
       },
     })),
     AutomationsModule,
+    MetricsModule,
+    WhatsAppOnboardingModule,
     BullModule.registerQueue({
       name: 'messages',
       defaultJobOptions: {
@@ -40,7 +53,7 @@ import { AutomationsModule } from '../automations/automations.module';
       },
     }),
   ],
-  providers: [WhatsAppService, PrismaService, WhatsAppResolver, WhatsAppProcessor, WhatsAppAdapter],
+  providers: [WhatsAppService, WhatsAppResolver, WhatsAppProcessor, WhatsAppAdapter],
   controllers: [WhatsAppWebhookController],
   exports: [WhatsAppService],
 })
