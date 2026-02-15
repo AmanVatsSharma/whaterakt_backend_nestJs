@@ -2,7 +2,7 @@
 * File: src/contact/contact.resolver.ts
 * Module: contact
 * Purpose: GraphQL resolver for tenant-scoped contact operations.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Delegates all data access to ContactService.

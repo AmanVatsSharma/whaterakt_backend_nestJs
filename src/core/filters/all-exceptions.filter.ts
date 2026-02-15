@@ -2,7 +2,7 @@
 * File: src/core/filters/all-exceptions.filter.ts
 * Module: core
 * Purpose: Global HTTP exception response formatter.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Keeps tenant id in error responses for traceability.

@@ -2,7 +2,7 @@
 * File: src/contact/contact.service.ts
 * Module: contact
 * Purpose: Tenant-scoped contact management service.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Persists contacts/tags through TypeORM repositories.
