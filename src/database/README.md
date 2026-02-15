@@ -1,6 +1,6 @@
 # Database Modernization (TypeORM)
 
-We are migrating away from Prisma to TypeORM to unlock richer RBAC scenarios, custom migrations, and advanced multi-tenant strategies.
+Database access is fully centralized on TypeORM for richer RBAC scenarios, custom migrations, and advanced multi-tenant strategies.
 
 ## Flow Chart
 
@@ -8,21 +8,17 @@ We are migrating away from Prisma to TypeORM to unlock richer RBAC scenarios, cu
 [Request] -> TenantMiddleware -> DatabaseModule(TypeORM)
                                ├─ TenantOrmEntity
                                ├─ UserOrmEntity
-                               └─ TenantAwareRepository (scopes tenantId)
+                               └─ Domain entities (campaign/contact/shopify/team)
 ```
 
 ## Key Decisions
 - **Single DB / tenantId column** for now. We can later evolve to schema-per-tenant or RLS once the repositories land.
-- **TypeORM entities mirror Prisma** so dual-write is feasible while we migrate modules one-by-one.
-- **Base repository + context setter** ensures every repository enforces tenant scoping consistently.
-
-## Dual-Write & Feature Flags
-- Toggle mirroring with `TYPEORM_DUAL_WRITE_ENABLED=true`. When enabled, tenant/user writes hit both Prisma and TypeORM, logging metrics via `dual_write_failures_total` if anything drifts.
-- Tenant mirroring also seeds RBAC defaults (Owner role + core permissions) through `seedRbacDefaults`, ensuring access control works the moment a workspace is created.
+- **TypeORM entities mirror business domains** and are reused across modules.
+- **Seed hooks** ensure RBAC defaults are created when new tenants are provisioned.
 
 ## Next Steps
-1. Generate TypeORM migrations that recreate the existing schema.
-2. Introduce module-specific repositories (Campaign, Contact, etc.) extending `TenantAwareRepository`.
-3. Enable dual-write from services until we can safely remove Prisma usage.
+1. Introduce formal TypeORM migrations for production rollouts.
+2. Harden repository-level pagination/filter helpers for large tenants.
+3. Add schema validation checks in CI before deployment.
 
 Keep this README in sync with any future database architectural tweaks. Include flow charts and console logging references whenever the structure changes.
