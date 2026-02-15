@@ -74,7 +74,11 @@ export class AutomationsService {
       id: automation.id,
       type: automation.type,
       enabled: automation.enabled,
-      trigger: String((automation.definition as Record<string, unknown> | null)?.trigger || ''),
+      trigger: String(
+        (automation.definition as Record<string, unknown> | null)?.trigger ||
+          (automation.definition as Record<string, unknown> | null)?.event ||
+          '',
+      ),
       definition: automation.definition || null,
       createdAt: automation.createdAt?.toISOString?.() || null,
     }));
@@ -165,6 +169,104 @@ export class AutomationsService {
     }
     await repository.remove(automation);
     return { ok: true };
+  }
+
+  async ensureDefaultShopifyJourneys(tenantId: string) {
+    if (!tenantId) {
+      throw new BadRequestException('tenantId is required');
+    }
+    const repository = this.dataSource.getRepository(AutomationOrmEntity);
+    const existing = await repository.find({
+      where: { tenantId, type: 'SHOPIFY_EVENT' },
+      take: 200,
+    });
+    const existingEvents = new Set(
+      existing.map((item) =>
+        String((item.definition as Record<string, unknown> | null)?.event || '').toUpperCase(),
+      ),
+    );
+    const defaultJourneys = [
+      {
+        event: 'ORDER_CREATED',
+        messageTemplate:
+          'Namaste {{firstName}}, your order {{orderNumber}} is confirmed. Track updates in WhatsApp.',
+      },
+      {
+        event: 'ORDER_FULFILLED',
+        messageTemplate:
+          'Good news {{firstName}}! Order {{orderNumber}} has been shipped. Reply for support anytime.',
+      },
+      {
+        event: 'CUSTOMER_WIN_BACK',
+        messageTemplate:
+          'We miss you {{firstName}}. Here is a special offer from our store for your next order.',
+      },
+    ];
+
+    let created = 0;
+    for (const journey of defaultJourneys) {
+      if (existingEvents.has(journey.event)) {
+        continue;
+      }
+      await repository.save(
+        repository.create({
+          tenantId,
+          type: 'SHOPIFY_EVENT',
+          enabled: true,
+          definition: {
+            event: journey.event,
+            messageTemplate: journey.messageTemplate,
+          },
+        }),
+      );
+      created += 1;
+    }
+    return { ok: true, created, total: defaultJourneys.length };
+  }
+
+  async handleShopifyEvent(
+    tenantId: string,
+    event: string,
+    context: Record<string, unknown>,
+  ) {
+    if (!tenantId || !event) {
+      return { matched: 0, queued: 0 };
+    }
+    const targetEvent = event.trim().toUpperCase();
+    const recipient = this.resolveEventRecipient(context);
+    if (!recipient) {
+      return { matched: 0, queued: 0 };
+    }
+    const repository = this.dataSource.getRepository(AutomationOrmEntity);
+    const automations = await repository.find({
+      where: {
+        tenantId,
+        type: 'SHOPIFY_EVENT',
+        enabled: true,
+      },
+      take: 200,
+    });
+    let matched = 0;
+    let queued = 0;
+    for (const automation of automations) {
+      const definition = (automation.definition || {}) as Record<string, unknown>;
+      const definitionEvent = String(definition.event || '').toUpperCase();
+      if (definitionEvent !== targetEvent) {
+        continue;
+      }
+      matched += 1;
+      const template =
+        String(definition.messageTemplate || definition.message || '').trim() ||
+        'Your Shopify activity has been updated.';
+      const message = this.renderTemplate(template, context);
+      await this.enqueueTextMessage(tenantId, recipient, message, {
+        source: 'shopify',
+        event: targetEvent,
+        automationId: automation.id,
+      });
+      queued += 1;
+    }
+    return { matched, queued };
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
@@ -321,9 +423,33 @@ export class AutomationsService {
       id: automation.id,
       type: automation.type,
       enabled: automation.enabled,
-      trigger: String((automation.definition as Record<string, unknown> | null)?.trigger || ''),
+      trigger: String(
+        (automation.definition as Record<string, unknown> | null)?.trigger ||
+          (automation.definition as Record<string, unknown> | null)?.event ||
+          '',
+      ),
       definition: automation.definition || null,
       createdAt: automation.createdAt?.toISOString?.() || null,
     };
+  }
+
+  private resolveEventRecipient(context: Record<string, unknown>) {
+    const raw =
+      context.phone ||
+      context.customerPhone ||
+      context.shippingPhone ||
+      context.to ||
+      '';
+    return String(raw).trim();
+  }
+
+  private renderTemplate(template: string, context: Record<string, unknown>) {
+    return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key) => {
+      const value = context[key];
+      if (value === undefined || value === null) {
+        return '';
+      }
+      return String(value);
+    });
   }
 }

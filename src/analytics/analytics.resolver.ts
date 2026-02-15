@@ -22,6 +22,7 @@ import {
   MessageOrmEntity,
   MessageStatus,
 } from '../database/entities';
+import { WhatsAppOnboardingService } from '../modules/whatsapp-onboarding';
 
 @ObjectType()
 class TenantStats {
@@ -71,10 +72,31 @@ class CampaignKpi {
   replyRate: number;
 }
 
+@ObjectType()
+class WhatsAppOnboardingBucket {
+  @Field()
+  status: string;
+
+  @Field()
+  count: number;
+}
+
+@ObjectType()
+class WhatsAppOnboardingFunnel {
+  @Field()
+  total: number;
+
+  @Field(() => [WhatsAppOnboardingBucket])
+  buckets: WhatsAppOnboardingBucket[];
+}
+
 @Resolver(() => TenantStats)
 @UseGuards(GqlAuthGuard, TenantGuard)
 export class AnalyticsResolver {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly onboardingService: WhatsAppOnboardingService,
+  ) {}
 
   @Query(() => TenantStats)
   async tenantStats(@Context() context: { tenant: any }): Promise<TenantStats> {
@@ -203,5 +225,20 @@ export class AnalyticsResolver {
         replyRate,
       };
     });
+  }
+
+  @Query(() => WhatsAppOnboardingFunnel)
+  async whatsappOnboardingFunnel(
+    @Context() context: { tenant: any },
+  ): Promise<WhatsAppOnboardingFunnel> {
+    const tenantId = context?.tenant?.id;
+    const funnel = await this.onboardingService.getOnboardingFunnel(tenantId);
+    return {
+      total: funnel.total,
+      buckets: Object.entries(funnel.byStatus).map(([status, count]) => ({
+        status,
+        count,
+      })),
+    };
   }
 }
