@@ -1,4 +1,14 @@
-import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+/**
+* File: src/app.module.ts
+* Module: app
+* Purpose: Root Nest module wiring API, workers, security, and data layers.
+* Author: Aman Sharma / Vedpragya/ Codex
+* Last-updated: 2026-02-15
+* Notes:
+* - TypeORM is initialized via DatabaseModule as the only ORM.
+* - Tenant and request-id middleware run globally except webhook/system endpoints.
+*/
+import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { YogaDriver, YogaDriverConfig } from '@graphql-yoga/nestjs';
@@ -6,7 +16,6 @@ import { AuthModule } from './auth/auth.module';
 import { CampaignModule } from './campaign/campaign.module';
 import { ContactModule } from './contact/contact.module';
 import { TemplateModule } from './template/template.module';
-import { PrismaService } from './prisma.service';
 import { AiModule } from './ai/ai.module';
 import { AutomationsModule } from './automations/automations.module';
 import { InboxModule } from './inbox/inbox.module';
@@ -29,6 +38,9 @@ import { TenantMiddleware } from './core/middlewares/tenant.middleware';
 import { RequestIdMiddleware } from './core/middlewares/request-id.middleware';
 import { DatabaseModule } from './database/database.module';
 import { RbacModule } from './rbac/rbac.module';
+import { IntegrationsModule } from './modules/integrations';
+import { ShopifyIntegrationModule } from './modules/shopify-integration';
+import { TeamOnboardingModule } from './modules/team-onboarding';
 
 const logger = new Logger('BullModule');
 
@@ -87,11 +99,13 @@ const OPTIONAL_MODULES: any[] = [
     HealthModule,
     MetricsModule,
     RbacModule,
+    IntegrationsModule,
+    ShopifyIntegrationModule,
+    TeamOnboardingModule,
     HttpModule,
     ...OPTIONAL_MODULES,
   ],
   providers: [
-    PrismaService,
     InMemoryMessageQueue,
     RedisProvider,
     AIService,
@@ -109,6 +123,8 @@ export class AppModule {
       .apply(TenantMiddleware)
       .exclude(
         { path: 'webhooks/whatsapp', method: RequestMethod.ALL },
+        { path: 'shopify/oauth/callback', method: RequestMethod.ALL },
+        { path: 'shopify/webhook/orders', method: RequestMethod.ALL },
         { path: 'health', method: RequestMethod.ALL },
         { path: 'metrics', method: RequestMethod.ALL },
       )

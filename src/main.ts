@@ -4,23 +4,25 @@ import { SwaggerModule } from '@nestjs/swagger';
 import { SWAGGER_CONFIG } from './core/swagger/config';
 import { AllExceptionsFilter } from './core/filters/all-exceptions.filter';
 import { validateConfig } from './core/config/config.schema';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { json } from 'express';
 import helmet from 'helmet';
-import pino from 'pino';
 import pinoHttp from 'pino-http';
 import { requestContext } from './core/logging/request-context';
+import { appPinoLogger } from './shared/logger';
+import { LoggerService } from './shared/logger.service';
 
 async function bootstrap() {
-  const logger = new Logger('Bootstrap');
+  const bootstrapLogger = new LoggerService();
+  bootstrapLogger.setContext('Bootstrap');
   
   try {
     // Validate configuration first
     const config = await validateConfig(process.env);
-    logger.log('Configuration validated successfully');
+    bootstrapLogger.log('Configuration validated successfully');
 
-    const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
     const app = await NestFactory.create(AppModule, { bufferLogs: true });
+    app.useLogger(bootstrapLogger);
 
     // Capture raw body for webhook signature verification
     app.use('/webhooks/whatsapp', json({
@@ -28,9 +30,14 @@ async function bootstrap() {
         req.rawBody = buf?.toString('utf8');
       }
     }));
+    app.use('/shopify/webhook/orders', json({
+      verify: (req: any, _res, buf) => {
+        req.rawBody = buf?.toString('utf8');
+      }
+    }));
     // Structured logging with request ids
     app.use(pinoHttp({
-      logger,
+      logger: appPinoLogger,
       customProps: () => ({ requestId: requestContext.getStore()?.requestId }),
       customSuccessMessage: (_req, res) => `HTTP ${res.statusCode}`,
     } as any));
@@ -56,27 +63,27 @@ async function bootstrap() {
     const requestedPort = Number(config.PORT) || 3000;
     try {
       await app.listen(requestedPort);
-      logger.log(`Application is running on: http://localhost:${requestedPort}`);
+      bootstrapLogger.log(`Application is running on: http://localhost:${requestedPort}`);
     } catch (listenError) {
       if ((listenError as any).code === 'EADDRINUSE') {
         const fallbackPort = 3000;
         if (requestedPort !== fallbackPort) {
-          logger.warn(`Port ${requestedPort} in use. Falling back to ${fallbackPort}`);
+          bootstrapLogger.warn(`Port ${requestedPort} in use. Falling back to ${fallbackPort}`);
           await app.listen(fallbackPort);
-          logger.log(`Application is running on: http://localhost:${fallbackPort}`);
+          bootstrapLogger.log(`Application is running on: http://localhost:${fallbackPort}`);
         } else {
-          logger.warn(`Port ${fallbackPort} in use. Falling back to an ephemeral port`);
+          bootstrapLogger.warn(`Port ${fallbackPort} in use. Falling back to an ephemeral port`);
           await app.listen(0);
           const address = app.getHttpServer().address();
           const actualPort = typeof address === 'string' ? address : address?.port;
-          logger.log(`Application is running on dynamic port: http://localhost:${actualPort}`);
+          bootstrapLogger.log(`Application is running on dynamic port: http://localhost:${actualPort}`);
         }
       } else {
         throw listenError;
       }
     }
   } catch (error) {
-    logger.error(`Failed to start application: ${error.message}`);
+    bootstrapLogger.error(`Failed to start application: ${error.message}`);
     process.exit(1);
   }
 }
