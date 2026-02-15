@@ -9,10 +9,16 @@
 * - Exported for webhook processor integration.
 */
 import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bull';
 import { AutomationsResolver } from './automations.resolver';
 import { AutomationsService } from './automations.service';
 
 @Module({
+  imports: [
+    BullModule.registerQueue({
+      name: 'messages',
+    }),
+  ],
   providers: [AutomationsService, AutomationsResolver],
   exports: [AutomationsService],
 })
