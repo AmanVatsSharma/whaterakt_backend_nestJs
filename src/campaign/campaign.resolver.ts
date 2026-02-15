@@ -17,6 +17,7 @@ import { GqlAuthGuard } from '../core/guards/gql-auth.guard';
 import { RateLimitGuard } from '../core/guards/rate-limit.guard';
 import { Tenant } from '../tenant/entities/tenant.entity';
 import { CampaignService } from './campaign.service';
+import { CampaignStatus } from './enums/campaign-status.enum';
 
 @Resolver(() => Campaign)
 @UseGuards(GqlAuthGuard, TenantGuard, RateLimitGuard)
@@ -31,8 +32,37 @@ export class CampaignResolver {
   @Mutation(() => Campaign)
   async createCampaign(
     @Args('input') input: CreateCampaignInput,
-    @Context() context: { tenant: Tenant }
+    @Context() context: { tenant: Tenant; req?: { user?: { userId?: string } } }
   ) {
-    return this.campaignService.createCampaign(input, context.tenant.id);
+    const fallbackUserId = context?.req?.user?.userId;
+    return this.campaignService.createCampaign(
+      input,
+      context.tenant.id,
+      fallbackUserId,
+    );
+  }
+
+  @Mutation(() => Campaign)
+  async setCampaignStatus(
+    @Args('campaignId') campaignId: string,
+    @Args('status', { type: () => CampaignStatus }) status: CampaignStatus,
+    @Args('scheduledAt', { nullable: true }) scheduledAt: Date | null,
+    @Context() context: { tenant: Tenant },
+  ) {
+    return this.campaignService.setStatus(
+      context.tenant.id,
+      campaignId,
+      status,
+      { scheduledAt },
+    );
+  }
+
+  @Mutation(() => Boolean)
+  async deleteCampaign(
+    @Args('campaignId') campaignId: string,
+    @Context() context: { tenant: Tenant },
+  ) {
+    await this.campaignService.remove(context.tenant.id, campaignId);
+    return true;
   }
 }

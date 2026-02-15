@@ -26,4 +26,6 @@
 - 2026-02-15: Added automation listing query to support frontend data adapters.
 - 2026-02-15: Replaced keyword reply TODO with queue-based outbound enqueue.
 - 2026-02-15: Added minute-level drip scheduler with Redis/in-memory dedupe for one-time step dispatch.
+- 2026-02-15: Added Shopify commerce journey seeding (`ORDER_CREATED`, `ORDER_FULFILLED`, `CUSTOMER_WIN_BACK`) for connected stores.
+- 2026-02-15: Added `handleShopifyEvent` automation dispatch path with templated message rendering.
 
