@@ -1,5 +1,20 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+/**
+* File: src/database/entities/user.entity.ts
+* Module: database
+* Purpose: User persistence model, including MFA material and tenant link.
+* Author: Aman Sharma / Vedpragya/ Codex
+* Last-updated: 2026-02-15
+* Notes:
+* - Keeps MFA fields used by auth flows.
+* - Uses tenant foreign key for strict workspace boundaries.
+*/
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { BaseOrmEntity } from '../base.entity';
+import { CampaignOrmEntity } from './campaign.entity';
+import { ContactOrmEntity } from './contact.entity';
+import { ConversationNoteOrmEntity } from './conversation-note.entity';
+import { ConversationOrmEntity } from './conversation.entity';
+import { TemplateOrmEntity } from './template.entity';
 import { TenantOrmEntity } from './tenant.entity';
 
 @Entity({ name: 'User' })
@@ -32,4 +47,19 @@ export class UserOrmEntity extends BaseOrmEntity {
 
   @Column({ type: 'jsonb', nullable: true })
   metadata?: Record<string, any> | null;
+
+  @OneToMany(() => CampaignOrmEntity, (campaign) => campaign.user)
+  campaigns?: CampaignOrmEntity[];
+
+  @OneToMany(() => ContactOrmEntity, (contact) => contact.user)
+  contacts?: ContactOrmEntity[];
+
+  @OneToMany(() => TemplateOrmEntity, (template) => template.user)
+  templates?: TemplateOrmEntity[];
+
+  @OneToMany(() => ConversationOrmEntity, (conversation) => conversation.assignedUser)
+  assignedConversations?: ConversationOrmEntity[];
+
+  @OneToMany(() => ConversationNoteOrmEntity, (note) => note.user)
+  conversationNotes?: ConversationNoteOrmEntity[];
 }
