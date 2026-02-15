@@ -20,7 +20,7 @@
 
 **APIs:**
 - GraphQL mutations: register/login/MFA
-- REST: MFA QR streaming
+- REST: MFA QR streaming, forgot-password, reset-password
 
 **Env vars:** `JWT_SECRET`, `MFA_SECRET_KEY`, `REDIS_HOST`, `REDIS_PORT`
 
@@ -28,4 +28,5 @@
 
 **Change-log:**
 - 2026-02-15: Aligned module documentation with latest MFA + onboarding flow.
+- 2026-02-15: Implemented password reset token request/consume endpoints with Redis and in-memory fallback.
 

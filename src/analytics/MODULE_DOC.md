@@ -14,6 +14,7 @@
 
 **APIs:**
 - GraphQL query: `tenantStats`
+- GraphQL query: `campaignKpis`
 
 **Env vars:** none module-specific.
 
@@ -22,4 +23,5 @@
 **Change-log:**
 - 2026-02-15: Added module docs.
 - 2026-02-15: Migrated tenant stat aggregation queries to TypeORM repositories.
+- 2026-02-15: Added campaign KPI aggregation query and campaign-level reply/failure metrics.
 

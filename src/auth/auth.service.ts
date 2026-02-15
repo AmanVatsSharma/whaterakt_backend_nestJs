@@ -34,6 +34,11 @@ type ChallengeRecord = {
   expiresAt: number;
 };
 
+type PasswordResetRecord = {
+  userId: string;
+  expiresAt: number;
+};
+
 type AuthUser = {
   id: string;
   email: string;
@@ -51,7 +56,9 @@ type AuthUser = {
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly CHALLENGE_TTL_MS = 1000 * 60 * 5;
+  private readonly PASSWORD_RESET_TTL_MS = 1000 * 60 * 30;
   private readonly inMemoryChallenges = new Map<string, ChallengeRecord>();
+  private readonly inMemoryPasswordResets = new Map<string, PasswordResetRecord>();
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
@@ -121,6 +128,66 @@ export class AuthService {
 
     this.metrics.incrementAuthEvent('login');
     return this.buildAuthPayload(user);
+  }
+
+  /**
+   * Issues a short-lived password reset token.
+   * Always returns a generic success message to avoid account enumeration.
+   */
+  async requestPasswordReset(email: string): Promise<{ ok: true; message: string; resetToken?: string }> {
+    if (!email) {
+      throw new BadRequestException('email is required');
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await this.dataSource.getRepository(UserOrmEntity).findOne({
+      where: { email: normalizedEmail },
+    });
+    const message = 'If the email exists, a reset link will be sent.';
+
+    if (!user) {
+      this.logger.log(`requestPasswordReset ignored unknown email ${normalizedEmail}`);
+      return { ok: true, message };
+    }
+
+    const resetToken = randomUUID();
+    await this.persistPasswordResetToken(resetToken, {
+      userId: user.id,
+      expiresAt: Date.now() + this.PASSWORD_RESET_TTL_MS,
+    });
+    this.logger.log(`requestPasswordReset token issued for ${normalizedEmail}`);
+
+    if (process.env.NODE_ENV === 'production') {
+      return { ok: true, message };
+    }
+
+    // Non-production fallback until email provider wiring is completed.
+    return { ok: true, message, resetToken };
+  }
+
+  /**
+   * Resets password using a one-time reset token.
+   */
+  async resetPasswordWithToken(token: string, password: string): Promise<{ ok: true; message: string }> {
+    if (!token || !password) {
+      throw new BadRequestException('token and password are required');
+    }
+    if (password.length < 8) {
+      throw new BadRequestException('password must be at least 8 characters');
+    }
+
+    const record = await this.consumePasswordResetToken(token);
+    if (!record) {
+      throw new BadRequestException('Reset token expired or invalid');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    await this.dataSource.getRepository(UserOrmEntity).update(
+      { id: record.userId },
+      { password: hashedPassword }
+    );
+    this.logger.log(`resetPasswordWithToken completed for user ${record.userId}`);
+    return { ok: true, message: 'Password updated successfully' };
   }
 
   /**
@@ -313,6 +380,21 @@ export class AuthService {
     setTimeout(() => this.inMemoryChallenges.delete(challengeId), this.CHALLENGE_TTL_MS);
   }
 
+  private async persistPasswordResetToken(token: string, record: PasswordResetRecord) {
+    if (this.redis) {
+      await this.redis.set(
+        this.passwordResetKey(token),
+        JSON.stringify(record),
+        'PX',
+        this.PASSWORD_RESET_TTL_MS,
+      );
+      return;
+    }
+
+    this.inMemoryPasswordResets.set(token, record);
+    setTimeout(() => this.inMemoryPasswordResets.delete(token), this.PASSWORD_RESET_TTL_MS);
+  }
+
   private async consumeChallenge(challengeId: string): Promise<ChallengeRecord | null> {
     if (this.redis) {
       const raw = await this.redis.get(this.challengeKey(challengeId));
@@ -335,8 +417,34 @@ export class AuthService {
     return record;
   }
 
+  private async consumePasswordResetToken(token: string): Promise<PasswordResetRecord | null> {
+    if (this.redis) {
+      const raw = await this.redis.get(this.passwordResetKey(token));
+      if (!raw) {
+        return null;
+      }
+      await this.redis.del(this.passwordResetKey(token));
+      const record = JSON.parse(raw) as PasswordResetRecord;
+      if (Date.now() > record.expiresAt) {
+        return null;
+      }
+      return record;
+    }
+
+    const record = this.inMemoryPasswordResets.get(token);
+    this.inMemoryPasswordResets.delete(token);
+    if (!record || Date.now() > record.expiresAt) {
+      return null;
+    }
+    return record;
+  }
+
   private challengeKey(id: string) {
     return `auth:mfa:challenge:${id}`;
+  }
+
+  private passwordResetKey(token: string) {
+    return `auth:password-reset:${token}`;
   }
 
   private async hashBackupCodes(codes: string[]) {
