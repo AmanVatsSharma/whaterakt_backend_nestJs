@@ -1,14 +1,19 @@
-import { Controller, Get, Inject, Optional } from '@nestjs/common';
+/**
+* File: src/app.controller.ts
+* Module: app
+* Purpose: Basic application status controller.
+* Author: Aman Sharma / Novologic/ Codex
+* Last-updated: 2026-02-15
+* Notes:
+* - Kept intentionally small for liveness smoke checks.
+* - Does not depend on ORM-specific providers.
+*/
+import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
-import { PrismaService } from './prisma.service';
 
 @Controller()
 export class AppController {
-  constructor(
-    private readonly appService: AppService,
-    @Optional() private readonly prisma1?: PrismaService,
-    @Optional() @Inject('TEST') private readonly prisma2?: PrismaService
-  ) {}
+  constructor(private readonly appService: AppService) {}
 
   @Get()
   getHello(): string {
