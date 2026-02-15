@@ -1,0 +1,31 @@
+# Module: auth
+
+**Short:** Handles registration, login, JWT, and MFA flows.
+
+**Purpose:** Secure tenant owner onboarding and authentication lifecycle with optional MFA challenge flow.
+
+**Files:**
+- auth.module.ts
+- auth.resolver.ts
+- auth.controller.ts
+- auth.service.ts
+- mfa.service.ts
+- dto/
+- entities/
+- strategies/
+
+**Flow diagram:** `flowcharts/auth-flow.svg`
+
+**Dependencies:** tenant, metrics, rbac, database repositories, Redis challenge storage.
+
+**APIs:**
+- GraphQL mutations: register/login/MFA
+- REST: MFA QR streaming
+
+**Env vars:** `JWT_SECRET`, `MFA_SECRET_KEY`, `REDIS_HOST`, `REDIS_PORT`
+
+**Tests:** resolver/service unit tests + MFA integration scenarios.
+
+**Change-log:**
+- 2026-02-15: Aligned module documentation with latest MFA + onboarding flow.
+

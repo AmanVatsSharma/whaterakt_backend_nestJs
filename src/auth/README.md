@@ -7,7 +7,7 @@ This module centralizes every authentication surface in GraphQL and keeps the fe
 - **Password login with MFA challenges** backed by scalable Redis storage.
 - **TOTP-based MFA enrollment** with encrypted secrets, hashed backup codes, and controller helpers for QR streaming.
 - **Instrumentation/logging** at each layer to make live-debugging trivial.
-- **TypeORM dual-write** mirrors every user mutation (signup, MFA changes, backup code burn) when `TYPEORM_DUAL_WRITE_ENABLED` is true, and automatically assigns the Owner role through the RBAC service so tenants start with a privileged user.
+- **TypeORM-backed auth persistence** stores user and MFA mutations directly in PostgreSQL and automatically assigns the Owner role through the RBAC service so tenants start with a privileged user.
 
 ## Flow Chart
 
@@ -17,9 +17,9 @@ This module centralizes every authentication surface in GraphQL and keeps the fe
                        │
                        ▼
                  [AuthService]
-        ┌──────────┬───────────────┬────────────┐
-        │Prisma    │TenantService  │MfaService  │Redis (challenges)
-        └──────────┴───────────────┴────────────┘
+        ┌───────────────┬────────────┬────────────────────┐
+        │TypeORM        │MfaService  │Redis (challenges)  │
+        └───────────────┴────────────┴────────────────────┘
                        │
                        ▼
                [JWT + Tenant payload]
@@ -48,7 +48,7 @@ Each resolver/controller logs intent plus key identifiers (never secrets) to sim
 ## Operational Notes
 
 - Ensure `MFA_SECRET_KEY`, `REDIS_HOST`, and `REDIS_PORT` are set in production for hardened storage + scalable challenges.
-- After updating Prisma schema with MFA columns, run `prisma migrate deploy` followed by `prisma generate`.
+- Ensure PostgreSQL is reachable and `DATABASE_URL` is set before starting the service.
 - OTP enforcement for direct register-login is bookmarked in `AuthService.registerAndLogin`.
 
 Keeping this document beside the module helps cross-check behavior quickly; update both the code and here whenever auth flows evolve.

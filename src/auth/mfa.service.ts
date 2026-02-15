@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { authenticator } from 'otplib';
 import * as QRCode from 'qrcode';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
+import { LoggerService } from 'src/shared/logger.service';
 
 /**
  * Handles multi-factor authentication lifecycle utilities such as secret generation,
@@ -11,17 +12,19 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypt
 export class MfaService {
   private readonly issuer = 'WhatsAppMarketing';
   private readonly encryptionKey: Buffer;
+  private readonly logger = new LoggerService();
 
   constructor() {
     const rawKey = process.env.MFA_SECRET_KEY || process.env.JWT_SECRET || 'change-me-now';
     this.encryptionKey = createHash('sha256').update(rawKey).digest();
+    this.logger.setContext(MfaService.name);
   }
 
   /**
    * Generates MFA enrollment artifacts: secret, QR, and backup codes.
    */
   async generateArtifacts(email: string, tenantLabel?: string) {
-    console.log('[MfaService] Generating MFA artifacts', { email, tenantLabel });
+    this.logger.debug?.('[MfaService] Generating MFA artifacts', MfaService.name);
     try {
       const secret = authenticator.generateSecret();
       const keyUri = authenticator.keyuri(email, this.buildIssuerLabel(tenantLabel), secret);
@@ -39,7 +42,7 @@ export class MfaService {
         backupCodes,
       };
     } catch (error) {
-      console.error('[MfaService] Failed to generate MFA artifacts', { error });
+      this.logger.error('[MfaService] Failed to generate MFA artifacts', String(error));
       throw new InternalServerErrorException('Unable to prepare MFA enrollment assets');
     }
   }
@@ -48,7 +51,7 @@ export class MfaService {
    * Renders a QR code from an already stored/encrypted secret.
    */
   async renderQrFromSecret(email: string, encryptedSecret: string, tenantLabel?: string) {
-    console.log('[MfaService] Rendering QR from stored secret', { email });
+    this.logger.debug?.('[MfaService] Rendering QR from stored secret', MfaService.name);
     const secret = this.decryptSecret(encryptedSecret);
     const keyUri = authenticator.keyuri(email, this.buildIssuerLabel(tenantLabel), secret);
     const qrCodeDataUrl = await QRCode.toDataURL(keyUri);
@@ -88,7 +91,7 @@ export class MfaService {
       const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
       return decrypted.toString('utf8');
     } catch (error) {
-      console.error('[MfaService] Unable to decrypt MFA secret', { error });
+      this.logger.error('[MfaService] Unable to decrypt MFA secret', String(error));
       throw new InternalServerErrorException('Invalid MFA secret payload');
     }
   }
