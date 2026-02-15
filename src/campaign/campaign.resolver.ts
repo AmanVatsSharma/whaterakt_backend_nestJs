@@ -2,7 +2,7 @@
 * File: src/campaign/campaign.resolver.ts
 * Module: campaign
 * Purpose: GraphQL resolver for campaign query and creation.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Uses service-only data access for better module boundaries.

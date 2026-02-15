@@ -2,7 +2,7 @@
 * File: src/campaign/campaign.processor.ts
 * Module: campaign
 * Purpose: Bull processor for campaign dispatch fan-out.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Pulls subscribed contacts from TypeORM and enqueues message jobs.

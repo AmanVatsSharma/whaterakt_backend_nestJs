@@ -2,7 +2,7 @@
 * File: src/campaign/campaign.service.ts
 * Module: campaign
 * Purpose: Campaign creation and listing service.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Persists campaigns via TypeORM and schedules dispatch jobs.
