@@ -2,7 +2,7 @@
 * File: src/health/health.controller.ts
 * Module: health
 * Purpose: HTTP endpoint returning aggregate subsystem health.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Aggregates database, Redis, and queue status checks.

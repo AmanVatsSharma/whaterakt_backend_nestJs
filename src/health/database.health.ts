@@ -2,7 +2,7 @@
 * File: src/health/database.health.ts
 * Module: health
 * Purpose: TypeORM database health checker.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Uses a lightweight SELECT 1 probe on the active DataSource.

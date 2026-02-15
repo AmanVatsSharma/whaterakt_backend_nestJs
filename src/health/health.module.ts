@@ -2,7 +2,7 @@
 * File: src/health/health.module.ts
 * Module: health
 * Purpose: Health module exposing DB/Redis/Queue probes.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Database health is backed by TypeORM DataSource checks.
