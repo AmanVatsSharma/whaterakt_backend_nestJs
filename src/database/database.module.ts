@@ -1,11 +1,17 @@
-import { Module, Global } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+/**
+* File: src/database/database.module.ts
+* Module: database
+* Purpose: Global TypeORM module wiring for the backend.
+* Author: Aman Sharma / Vedpragya/ Codex
+* Last-updated: 2026-02-15
+* Notes:
+* - Exposes DataSource/EntityManager to all feature modules.
+* - Keeps DB bootstrap centralized and framework-native.
+*/
+import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { buildTypeOrmConfig } from './database.config';
-import { TenantOrmEntity } from './entities/tenant.entity';
-import { UserOrmEntity } from './entities/user.entity';
-import { TenantWriteRepository } from './repositories/tenant-write.repository';
-import { UserWriteRepository } from './repositories/user-write.repository';
 
 @Global()
 @Module({
@@ -16,9 +22,7 @@ import { UserWriteRepository } from './repositories/user-write.repository';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => buildTypeOrmConfig(config),
     }),
-    TypeOrmModule.forFeature([TenantOrmEntity, UserOrmEntity]),
   ],
-  providers: [TenantWriteRepository, UserWriteRepository],
-  exports: [TypeOrmModule, TenantWriteRepository, UserWriteRepository],
+  exports: [TypeOrmModule],
 })
 export class DatabaseModule {}
