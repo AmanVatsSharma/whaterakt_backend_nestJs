@@ -7,6 +7,9 @@ import { TenantService } from '../tenant/tenant.service';
 
 describe('AuthService', () => {
   let service: AuthService;
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalSignupOtpRequired = process.env.AUTH_SIGNUP_OTP_REQUIRED;
+  const originalSignupOtpCode = process.env.AUTH_SIGNUP_OTP_CODE;
 
   const userRepository = {
     findOne: jest.fn(),
@@ -40,6 +43,9 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     jest.resetAllMocks();
+    process.env.NODE_ENV = 'test';
+    process.env.AUTH_SIGNUP_OTP_REQUIRED = 'false';
+    delete process.env.AUTH_SIGNUP_OTP_CODE;
     dataSourceMock.getRepository.mockImplementation(() => userRepository);
     service = new AuthService(
       dataSourceMock as any,
@@ -50,6 +56,20 @@ describe('AuthService', () => {
       rbacServiceMock as unknown as RbacService,
       null,
     );
+  });
+
+  afterAll(() => {
+    process.env.NODE_ENV = originalNodeEnv;
+    if (originalSignupOtpRequired === undefined) {
+      delete process.env.AUTH_SIGNUP_OTP_REQUIRED;
+    } else {
+      process.env.AUTH_SIGNUP_OTP_REQUIRED = originalSignupOtpRequired;
+    }
+    if (originalSignupOtpCode === undefined) {
+      delete process.env.AUTH_SIGNUP_OTP_CODE;
+    } else {
+      process.env.AUTH_SIGNUP_OTP_CODE = originalSignupOtpCode;
+    }
   });
 
   it('should be defined', () => {
@@ -64,5 +84,51 @@ describe('AuthService', () => {
         password: 'AnyPassword123!',
       }),
     ).rejects.toThrow('Invalid credentials');
+  });
+
+  it('registerAndLogin should reject when OTP is required and missing', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.AUTH_SIGNUP_OTP_REQUIRED = 'true';
+    process.env.AUTH_SIGNUP_OTP_CODE = '123456';
+
+    await expect(
+      service.registerAndLogin({
+        email: 'owner@example.com',
+        password: 'StrongPassword123!',
+        tenantName: 'Acme',
+      } as any),
+    ).rejects.toThrow('Invalid signup OTP');
+  });
+
+  it('registerAndLogin should proceed when OTP is valid', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.AUTH_SIGNUP_OTP_REQUIRED = 'true';
+    process.env.AUTH_SIGNUP_OTP_CODE = '123456';
+
+    jest.spyOn(service as any, 'createTenantOwner').mockResolvedValue({
+      id: 'user-1',
+      email: 'owner@example.com',
+      password: 'hashed',
+      tenantId: 'tenant-1',
+      mfaEnabled: false,
+      mfaSecret: null,
+      mfaBackupCodes: [],
+    });
+    jest.spyOn(service as any, 'buildAuthPayload').mockResolvedValue({
+      access_token: 'token',
+      mfaRequired: false,
+    });
+
+    const result = await service.registerAndLogin({
+      email: 'owner@example.com',
+      password: 'StrongPassword123!',
+      tenantName: 'Acme',
+      otpCode: '123456',
+    } as any);
+
+    expect(result).toEqual({
+      access_token: 'token',
+      mfaRequired: false,
+    });
   });
 });

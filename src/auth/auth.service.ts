@@ -12,7 +12,7 @@ import { BadRequestException, Inject, Injectable, Logger, UnauthorizedException 
 import { JwtService } from '@nestjs/jwt';
 import { InjectDataSource } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
-import { randomUUID } from 'crypto';
+import { randomUUID, timingSafeEqual } from 'crypto';
 import { Redis } from 'ioredis';
 import { DataSource } from 'typeorm';
 import { MetricsService } from '../metrics/metrics.service';
@@ -85,11 +85,11 @@ export class AuthService {
   }
 
   /**
-   * Registers and logs in the user in a single mutation.
-   * TODO: Plug OTP validation before allowing auto-login once SMS/email OTP providers are wired.
+   * Registers and logs in the user in a single mutation with optional OTP gating.
    */
   async registerAndLogin(input: SignupInput): Promise<AuthPayload> {
     this.logger.log(`registerAndLogin requested for ${input.email}`);
+    this.validateSignupOtp(input);
     const user = await this.createTenantOwner(input.email, input.password, input.tenantName);
     this.metrics.incrementAuthEvent('register');
     this.metrics.incrementAuthEvent('login');
@@ -377,7 +377,11 @@ export class AuthService {
     }
 
     this.inMemoryChallenges.set(challengeId, record);
-    setTimeout(() => this.inMemoryChallenges.delete(challengeId), this.CHALLENGE_TTL_MS);
+    const evictionTimer = setTimeout(
+      () => this.inMemoryChallenges.delete(challengeId),
+      this.CHALLENGE_TTL_MS,
+    );
+    evictionTimer.unref?.();
   }
 
   private async persistPasswordResetToken(token: string, record: PasswordResetRecord) {
@@ -392,7 +396,11 @@ export class AuthService {
     }
 
     this.inMemoryPasswordResets.set(token, record);
-    setTimeout(() => this.inMemoryPasswordResets.delete(token), this.PASSWORD_RESET_TTL_MS);
+    const evictionTimer = setTimeout(
+      () => this.inMemoryPasswordResets.delete(token),
+      this.PASSWORD_RESET_TTL_MS,
+    );
+    evictionTimer.unref?.();
   }
 
   private async consumeChallenge(challengeId: string): Promise<ChallengeRecord | null> {
@@ -505,5 +513,42 @@ export class AuthService {
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     };
+  }
+
+  private validateSignupOtp(input: SignupInput) {
+    const explicitRequirement = process.env.AUTH_SIGNUP_OTP_REQUIRED;
+    const otpRequired =
+      explicitRequirement === 'true' ||
+      (explicitRequirement !== 'false' && process.env.NODE_ENV === 'production');
+
+    if (!otpRequired) {
+      return;
+    }
+
+    const configuredOtpCode = process.env.AUTH_SIGNUP_OTP_CODE;
+    if (!configuredOtpCode) {
+      this.logger.error(
+        'AUTH_SIGNUP_OTP_REQUIRED is enabled but AUTH_SIGNUP_OTP_CODE is missing',
+      );
+      throw new BadRequestException('Signup OTP is not configured');
+    }
+
+    const receivedOtpCode = input.otpCode?.trim();
+    const expectedOtpCode = configuredOtpCode.trim();
+    if (!receivedOtpCode || !this.safeCompareOtp(receivedOtpCode, expectedOtpCode)) {
+      this.metrics.incrementAuthEvent('register_otp_failed');
+      throw new UnauthorizedException('Invalid signup OTP');
+    }
+
+    this.metrics.incrementAuthEvent('register_otp_verified');
+  }
+
+  private safeCompareOtp(received: string, expected: string) {
+    const receivedBuffer = Buffer.from(received);
+    const expectedBuffer = Buffer.from(expected);
+    if (receivedBuffer.length !== expectedBuffer.length) {
+      return false;
+    }
+    return timingSafeEqual(receivedBuffer, expectedBuffer);
   }
 }

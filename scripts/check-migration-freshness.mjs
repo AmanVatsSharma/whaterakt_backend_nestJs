@@ -60,6 +60,19 @@ async function run() {
   const newestEntityTimestamp = await newestMtime(entityFiles);
   const newestMigrationTimestamp = await newestMtime(migrationFiles);
 
+  const normalizedEntityTokens = entityFiles
+    .filter((filePath) => path.basename(filePath) !== "base.entity.ts")
+    .map((filePath) => path.basename(filePath, ".entity.ts").toLowerCase());
+
+  const migrationContents = await Promise.all(
+    migrationFiles.map((filePath) => fs.readFile(filePath, "utf8"))
+  );
+  const mergedMigrationContent = migrationContents.join("\n").toLowerCase();
+
+  const uncoveredEntityTokens = normalizedEntityTokens.filter(
+    (token) => !mergedMigrationContent.includes(token)
+  );
+
   if (newestEntityTimestamp > newestMigrationTimestamp) {
     throw new Error(
       [
@@ -71,11 +84,22 @@ async function run() {
     );
   }
 
+  if (uncoveredEntityTokens.length > 0) {
+    throw new Error(
+      [
+        "Migration coverage check failed.",
+        "Every database entity file must be referenced by at least one migration.",
+        `Missing tokens: ${uncoveredEntityTokens.join(", ")}`,
+      ].join("\n")
+    );
+  }
+
   console.log(
     [
       "Migration freshness check passed.",
       `Entity files: ${entityFiles.length}`,
       `Migration files: ${migrationFiles.length}`,
+      `Covered entities: ${normalizedEntityTokens.length}`,
       `Newest migration: ${formatTimestamp(newestMigrationTimestamp)}`,
     ].join("\n")
   );

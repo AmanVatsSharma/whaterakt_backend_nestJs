@@ -29,4 +29,7 @@
 **Change-log:**
 - 2026-02-15: Aligned module documentation with latest MFA + onboarding flow.
 - 2026-02-15: Implemented password reset token request/consume endpoints with Redis and in-memory fallback.
+- 2026-02-15: Hardened `registerAndLogin` with configurable OTP enforcement (`AUTH_SIGNUP_OTP_REQUIRED`, `AUTH_SIGNUP_OTP_CODE`) and timing-safe code comparison.
+- 2026-02-15: Extended signup input contract with optional `otpCode` and class-validator constraints.
+- 2026-02-15: Added auth service tests for OTP-required rejection and OTP-valid direct onboarding success paths.
 
