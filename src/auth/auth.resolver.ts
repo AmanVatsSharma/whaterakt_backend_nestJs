@@ -2,7 +2,7 @@
 * File: src/auth/auth.resolver.ts
 * Module: auth
 * Purpose: GraphQL resolver entrypoints for authentication and MFA flows.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Delegates business logic to AuthService.

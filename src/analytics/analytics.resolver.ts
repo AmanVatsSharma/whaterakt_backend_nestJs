@@ -2,7 +2,7 @@
 * File: src/analytics/analytics.resolver.ts
 * Module: analytics
 * Purpose: GraphQL analytics resolver for tenant-level and campaign-level KPIs.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Reads aggregate counters via TypeORM repositories.

@@ -2,7 +2,7 @@
 * File: src/auth/auth.controller.ts
 * Module: auth
 * Purpose: HTTP endpoints for auth operations not ideal in GraphQL.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Exposes QR streaming endpoint for MFA enrollment UX.
