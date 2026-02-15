@@ -2,7 +2,7 @@
 * File: src/campaign/enums/campaign-status.enum.ts
 * Module: campaign
 * Purpose: Campaign status enum shared by GraphQL and persistence.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Local enum keeps API values independent of ORM generators.

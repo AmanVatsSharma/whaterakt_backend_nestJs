@@ -2,7 +2,7 @@
 * File: src/campaign/entities/campaign.entity.ts
 * Module: campaign
 * Purpose: GraphQL campaign object type.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Uses local campaign enums registered in GraphQL.
