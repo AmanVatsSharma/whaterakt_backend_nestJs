@@ -2,7 +2,7 @@
 * File: src/inbox/conversation.service.ts
 * Module: inbox
 * Purpose: Conversation command/query service for inbox workflows.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Uses TypeORM repositories for conversation, note, and tag links.

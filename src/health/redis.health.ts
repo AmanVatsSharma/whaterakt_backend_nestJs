@@ -2,7 +2,7 @@
 * File: src/health/redis.health.ts
 * Module: health
 * Purpose: Redis health checker for cache and queue support connectivity.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Uses Redis ping command for liveness checks.

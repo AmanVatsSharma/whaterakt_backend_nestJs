@@ -2,7 +2,7 @@
 * File: src/health/queue.health.ts
 * Module: health
 * Purpose: Queue health checker for Bull message queue connectivity.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Uses queue client's ping command to verify broker reachability.
