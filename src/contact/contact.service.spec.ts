@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContactService } from './contact.service';
-import { PrismaService } from 'src/prisma.service';
+import { DataSource } from 'typeorm';
 
 describe('ContactService', () => {
   let service: ContactService;
@@ -9,7 +9,17 @@ describe('ContactService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ContactService,
-        { provide: PrismaService, useValue: { contact: { create: jest.fn(), findMany: jest.fn() } } },
+        {
+          provide: DataSource,
+          useValue: {
+            getRepository: jest.fn(() => ({
+              create: jest.fn((payload) => payload),
+              save: jest.fn(async (payload) => ({ id: 'contact-1', ...payload })),
+              find: jest.fn(async () => []),
+              findOne: jest.fn(async () => null),
+            })),
+          },
+        },
       ],
     }).compile();
 
