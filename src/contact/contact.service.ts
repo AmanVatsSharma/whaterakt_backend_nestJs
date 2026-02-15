@@ -1,40 +1,60 @@
+/**
+* File: src/contact/contact.service.ts
+* Module: contact
+* Purpose: Tenant-scoped contact management service.
+* Author: Aman Sharma / Novologic/ Codex
+* Last-updated: 2026-02-15
+* Notes:
+* - Persists contacts/tags through TypeORM repositories.
+* - Accepts tenantId per call to avoid mutable singleton state.
+*/
 import { Injectable } from '@nestjs/common';
-import { TenantAwareService } from '../core/services/tenant-aware.service';
-import { PrismaService } from 'src/prisma.service';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { ContactOrmEntity, ContactTagOrmEntity, TagOrmEntity } from '../database/entities';
 import { CreateContactInput } from './dto/create-contact.input';
 
 @Injectable()
-export class ContactService extends TenantAwareService {
-  constructor(protected readonly prisma: PrismaService) { super(prisma); }
-  async createContact(input: CreateContactInput & { tags?: string[] }) {
+export class ContactService {
+  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+
+  async createContact(input: CreateContactInput & { tags?: string[] }, tenantId: string) {
     const { tags, ...rest } = input || {} as any;
-    const created = await this.prisma.contact.create({
-      data: {
+    const contactRepository = this.dataSource.getRepository(ContactOrmEntity);
+    const tagRepository = this.dataSource.getRepository(TagOrmEntity);
+    const contactTagRepository = this.dataSource.getRepository(ContactTagOrmEntity);
+
+    const created = await contactRepository.save(
+      contactRepository.create({
         ...rest,
-        tenantId: this.tenantId,
-      },
-    });
+        tenantId,
+      }),
+    );
+
     if (Array.isArray(tags) && tags.length) {
       for (const tagName of tags) {
-        const tag = await this.prisma.tag.upsert({
-          where: { tenantId_name: { tenantId: this.tenantId!, name: tagName } },
-          update: {},
-          create: { tenantId: this.tenantId!, name: tagName },
+        let tag = await tagRepository.findOne({ where: { tenantId, name: tagName } });
+        if (!tag) {
+          tag = await tagRepository.save(tagRepository.create({ tenantId, name: tagName }));
+        }
+
+        const existingLink = await contactTagRepository.findOne({
+          where: { contactId: created.id, tagId: tag.id },
         });
-        await this.prisma.contactTag.upsert({
-          where: { contactId_tagId: { contactId: created.id, tagId: tag.id } },
-          update: {},
-          create: { contactId: created.id, tagId: tag.id },
-        });
+        if (!existingLink) {
+          await contactTagRepository.save(
+            contactTagRepository.create({ contactId: created.id, tagId: tag.id }),
+          );
+        }
       }
     }
     return created;
   }
 
-  async findAll() {
-    return this.prisma.contact.findMany({
-      where: this.withTenant(),
-      include: { groups: true },
+  async findAll(tenantId: string) {
+    return this.dataSource.getRepository(ContactOrmEntity).find({
+      where: { tenantId },
+      relations: { groups: true },
     });
   }
 }
