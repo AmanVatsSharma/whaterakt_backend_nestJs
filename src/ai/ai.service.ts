@@ -1,24 +1,29 @@
-import { Injectable, Inject } from '@nestjs/common';
+/**
+* File: src/ai/ai.service.ts
+* Module: ai
+* Purpose: Multi-provider AI suggestion service for message assistance.
+* Author: Aman Sharma / Novologic/ Codex
+* Last-updated: 2026-02-15
+* Notes:
+* - Provider selection is runtime-configurable through AI_PROVIDER.
+* - Service is ORM-independent and purely API/network driven.
+*/
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { PrismaService } from 'src/prisma.service';
-import { TenantAwareService } from '../core/services/tenant-aware.service';
-import { AI_PROVIDER } from './ai.module';
+import { AI_PROVIDER } from './ai.constants';
 
 @Injectable()
-export class AIService extends TenantAwareService {
+export class AIService {
   private readonly apiUrl = this.config.get('DEEPSEEK_API_URL');
   private readonly apiKey = this.config.get('DEEPSEEK_API_KEY');
 
   constructor(
     private readonly http: HttpService,
     private readonly config: ConfigService,
-    protected readonly prisma: PrismaService,
     @Inject(AI_PROVIDER) private readonly providerCfg: { provider: string; model?: string },
-  ) {
-    super(prisma);
-  }
+  ) {}
 
   async generateReplySuggestion(context: string) {
     try {
@@ -29,6 +34,37 @@ export class AIService extends TenantAwareService {
       // Graceful fallback
       return 'Thanks for reaching out! We will get back to you shortly.';
     }
+  }
+
+  async generateCampaignCopy(
+    prompt: string,
+    tone: 'friendly' | 'formal' | 'urgent' = 'friendly',
+    length: 'short' | 'medium' | 'long' = 'medium'
+  ): Promise<string> {
+    const basePrompt = prompt || 'Announce a seasonal campaign with clear CTA.';
+    const generated = await this.generateReplySuggestion(
+      `[campaign-copy tone=${tone} length=${length}] ${basePrompt}`
+    );
+
+    if (generated.length > 20) {
+      return generated;
+    }
+
+    if (length === 'long') {
+      return `${basePrompt} Shop now and enjoy limited-time savings before inventory runs out.`;
+    }
+    if (length === 'short') {
+      return `${basePrompt}`;
+    }
+    return `${basePrompt} Offer live now.`;
+  }
+
+  async summarizeConversation(conversationId?: string, transcript?: string): Promise<string> {
+    const summarySeed = transcript || `conversation:${conversationId || 'unknown'}`;
+    const generated = await this.generateReplySuggestion(
+      `[conversation-summary] ${summarySeed}`
+    );
+    return `Summary for ${conversationId || 'conversation'}: ${generated}`;
   }
 
   private async callProviderAPI(context: string): Promise<any> {
