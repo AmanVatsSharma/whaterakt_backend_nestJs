@@ -2,7 +2,7 @@
 * File: src/app.controller.ts
 * Module: app
 * Purpose: Basic application status controller.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Kept intentionally small for liveness smoke checks.

@@ -2,7 +2,7 @@
 * File: src/analytics/analytics.module.ts
 * Module: analytics
 * Purpose: Analytics module exposing tenant stats queries.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Resolver reads aggregated counts from TypeORM repositories.

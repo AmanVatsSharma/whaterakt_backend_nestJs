@@ -2,7 +2,7 @@
  * File: src/ai/ai.constants.ts
  * Module: ai
  * Purpose: Constants/tokens shared across AI module providers.
- * Author: Aman Sharma / Novologic/ Codex
+ * Author: Aman Sharma / Vedpragya/ Codex
  * Last-updated: 2026-02-15
  * Notes:
  * - Isolated to avoid module-service circular imports.

@@ -2,7 +2,7 @@
 * File: src/ai/ai.service.ts
 * Module: ai
 * Purpose: Multi-provider AI suggestion service for message assistance.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Provider selection is runtime-configurable through AI_PROVIDER.
