@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import { WhatsAppOnboardingService } from '../modules/whatsapp-onboarding';
 
 @Injectable()
 export class WhatsAppAdapter {
@@ -14,6 +15,7 @@ export class WhatsAppAdapter {
   constructor(
     private readonly http: HttpService,
     private readonly config: ConfigService,
+    private readonly onboardingService: WhatsAppOnboardingService,
   ) {
     this.accessToken = this.config.get<string>('WHATSAPP_ACCESS_TOKEN')!;
     this.graphBase = this.config.get<string>('WHATSAPP_GRAPH_BASE') || 'https://graph.facebook.com';
@@ -21,9 +23,18 @@ export class WhatsAppAdapter {
     this.defaultPhoneNumberId = this.config.get<string>('WHATSAPP_DEFAULT_PHONE_NUMBER_ID');
   }
 
-  private resolvePhoneNumberId(tenantId?: string, explicit?: string): string | undefined {
+  private async resolvePhoneNumberId(
+    tenantId?: string,
+    explicit?: string,
+  ): Promise<string | undefined> {
     if (explicit) return explicit;
-    // Prefer tenant mapping from env (temporary) until DB mapping exists
+    if (tenantId) {
+      const mapped = await this.onboardingService.resolvePhoneNumberIdByTenant(tenantId);
+      if (mapped) {
+        return mapped;
+      }
+    }
+    // Fallback to env map for emergency/manual overrides.
     try {
       const mapRaw = process.env.WHATSAPP_TENANT_PHONE_MAP;
       if (tenantId && mapRaw) {
@@ -39,7 +50,7 @@ export class WhatsAppAdapter {
     try {
       const idBase = JSON.stringify({ to: payload?.to, type: payload?.type, ts: Date.now() });
       const idempotencyKey = payload?.idempotencyKey || Buffer.from(idBase).toString('base64').slice(0, 48);
-      const phoneNumberId = this.resolvePhoneNumberId(tenantId, payload?.phone_number_id);
+      const phoneNumberId = await this.resolvePhoneNumberId(tenantId, payload?.phone_number_id);
       if (!phoneNumberId) {
         this.logger.error('Missing phone_number_id for WhatsApp send');
         return { success: false, error: 'missing_phone_number_id' } as any;
