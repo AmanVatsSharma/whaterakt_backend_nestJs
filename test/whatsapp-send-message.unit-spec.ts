@@ -2,8 +2,10 @@ import { Test } from '@nestjs/testing';
 import { WhatsAppService } from '../src/whatsapp/whatsapp.service';
 import { HttpModule } from '@nestjs/axios';
 import { getQueueToken } from '@nestjs/bull';
-import { PrismaService } from '../src/prisma.service';
 import { WhatsAppAdapter } from '../src/whatsapp/whatsapp.adapter';
+import { DataSource } from 'typeorm';
+import { MetricsService } from '../src/metrics/metrics.service';
+import { WhatsAppOnboardingService } from '../src/modules/whatsapp-onboarding';
 
 describe('WhatsAppService sendMessage', () => {
   it('builds interactive quick reply buttons when quickReplies provided', async () => {
@@ -11,15 +13,36 @@ describe('WhatsAppService sendMessage', () => {
       imports: [HttpModule],
       providers: [
         WhatsAppService,
-        WhatsAppAdapter,
+        {
+          provide: WhatsAppAdapter,
+          useValue: { sendMessage: jest.fn(async () => ({ success: true })) },
+        },
         { provide: getQueueToken('messages'), useValue: { add: jest.fn() } },
-        { provide: PrismaService, useValue: {} },
+        {
+          provide: DataSource,
+          useValue: {
+            getRepository: jest.fn(() => ({
+              findOne: jest.fn(async () => null),
+              count: jest.fn(async () => 0),
+            })),
+          },
+        },
+        {
+          provide: MetricsService,
+          useValue: { incrementWhatsAppSendFailure: jest.fn() },
+        },
+        {
+          provide: WhatsAppOnboardingService,
+          useValue: { isTenantSendReady: jest.fn(async () => ({ ready: true })) },
+        },
       ],
     }).compile();
 
     const service = moduleRef.get(WhatsAppService);
-    (service as any).tenantId = 't1';
-    const res = await service.sendMessage({ to: '1555', message: 'Pick one', quickReplies: ['A', 'B', 'C', 'D'] });
+    const res = await service.sendMessage(
+      { to: '1555', message: 'Pick one', quickReplies: ['A', 'B', 'C', 'D'] },
+      't1',
+    );
     expect(res.success).toBeDefined();
   });
 });
