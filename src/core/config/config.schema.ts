@@ -1,6 +1,7 @@
 import { IsString, IsNotEmpty, IsUrl, IsNumber, IsOptional, IsEnum, IsArray } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 import { validateSync } from 'class-validator';
+import { appPinoLogger } from 'src/shared/logger';
 
 enum Environment {
   Development = 'development',
@@ -20,6 +21,18 @@ class EnvironmentVariables {
   @IsString()
   @IsNotEmpty()
   DATABASE_URL: string;
+
+  @IsString()
+  @IsOptional()
+  TYPEORM_LOGGING: string;
+
+  @IsString()
+  @IsOptional()
+  TYPEORM_SYNCHRONIZE: string;
+
+  @IsString()
+  @IsOptional()
+  TYPEORM_MIGRATIONS_RUN: string;
 
   @IsString()
   @IsNotEmpty()
@@ -116,6 +129,38 @@ class EnvironmentVariables {
   @IsOptional()
   WHATSAPP_TENANT_PHONE_MAP: string; // JSON map of phone_number_id -> tenantId
 
+  @IsString()
+  @IsOptional()
+  SHOPIFY_CLIENT_ID: string;
+
+  @IsString()
+  @IsOptional()
+  SHOPIFY_CLIENT_SECRET: string;
+
+  @IsString()
+  @IsOptional()
+  SHOPIFY_WEBHOOK_SECRET: string;
+
+  @IsString()
+  @IsOptional()
+  SHOPIFY_OAUTH_STATE_SECRET: string;
+
+  @IsString()
+  @IsOptional()
+  SHOPIFY_SCOPES: string;
+
+  @IsString()
+  @IsOptional()
+  SHOPIFY_API_VERSION: string = '2024-10';
+
+  @IsUrl({ require_tld: false })
+  @IsOptional()
+  SHOPIFY_OAUTH_REDIRECT_URI: string;
+
+  @IsUrl({ require_tld: false })
+  @IsOptional()
+  BACKEND_PUBLIC_URL: string;
+
   // Rate limiting (GraphQL guards)
   @IsNumber()
   @IsOptional()
@@ -170,7 +215,7 @@ export function validateConfig(config: Record<string, unknown>) {
     if (process.env.NODE_ENV === 'production') {
       throw new Error(`Config validation error: ${JSON.stringify(errors)}`);
     } else {
-      console.warn('Config validation warnings (non-fatal in dev):', errors);
+      appPinoLogger.warn({ errors }, 'Config validation warnings (non-fatal in dev)');
     }
   }
 
