@@ -2,7 +2,7 @@
 * File: src/core/middlewares/tenant.middleware.ts
 * Module: core
 * Purpose: Resolves tenant context from headers/auth claims.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Looks up tenant via TypeORM repository.

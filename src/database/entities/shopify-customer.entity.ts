@@ -2,7 +2,7 @@
 * File: src/database/entities/shopify-customer.entity.ts
 * Module: database
 * Purpose: Cached Shopify customer mirror for tenant records.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Unique by tenant + Shopify customer id.

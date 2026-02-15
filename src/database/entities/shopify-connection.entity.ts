@@ -2,7 +2,7 @@
 * File: src/database/entities/shopify-connection.entity.ts
 * Module: database
 * Purpose: Shopify tenant connection credentials and metadata.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Unique by tenant + shopDomain.
