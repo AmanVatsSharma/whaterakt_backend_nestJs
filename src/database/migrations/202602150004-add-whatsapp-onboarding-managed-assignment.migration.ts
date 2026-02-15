@@ -2,7 +2,7 @@
  * File: src/database/migrations/202602150004-add-whatsapp-onboarding-managed-assignment.migration.ts
  * Module: database
  * Purpose: Add managed WhatsApp onboarding, number inventory, and audit tables.
- * Author: Aman Sharma / Novologic/ Codex
+ * Author: Aman Sharma / Vedpragya/ Codex
  * Last-updated: 2026-02-15
  */
 import { MigrationInterface, QueryRunner } from 'typeorm';

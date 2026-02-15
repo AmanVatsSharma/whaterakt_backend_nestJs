@@ -2,7 +2,7 @@
 * File: src/database/entities/whatsapp-number.entity.ts
 * Module: database
 * Purpose: Managed WhatsApp number inventory and tenant assignment state.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Inventory rows are operator-managed and can be assigned/released.

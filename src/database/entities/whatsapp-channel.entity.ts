@@ -2,7 +2,7 @@
 * File: src/database/entities/whatsapp-channel.entity.ts
 * Module: database
 * Purpose: Tenant-scoped WhatsApp onboarding and channel activation state.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Stores onboarding lifecycle and channel metadata for managed numbers.
