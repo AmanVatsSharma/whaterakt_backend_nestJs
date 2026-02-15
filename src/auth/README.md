@@ -3,7 +3,7 @@
 This module centralizes every authentication surface in GraphQL and keeps the few controller endpoints that are better suited for binary payloads (e.g. streaming an MFA QR PNG). The implementation now covers:
 
 - **Register → Login separation** so enterprise onboarding flows can decide whether to auto-create sessions.
-- **Direct register-and-login** mutation for rapid pilots (currently no OTP – see inline TODO).
+- **Direct register-and-login** mutation with optional OTP gating (`AUTH_SIGNUP_OTP_REQUIRED`, `AUTH_SIGNUP_OTP_CODE`).
 - **Password login with MFA challenges** backed by scalable Redis storage.
 - **TOTP-based MFA enrollment** with encrypted secrets, hashed backup codes, and controller helpers for QR streaming.
 - **Instrumentation/logging** at each layer to make live-debugging trivial.
@@ -30,7 +30,7 @@ This module centralizes every authentication surface in GraphQL and keeps the fe
 | Surface | Responsibility |
 | --- | --- |
 | `registerTenantOwner` | Create tenant admin without session. |
-| `registerAndLogin` | Direct auto-login onboarding (OTP TODO in code). |
+| `registerAndLogin` | Direct auto-login onboarding with optional OTP enforcement. |
 | `login` | Password login, emits MFA challenge metadata when needed. |
 | `completeMfaLogin` | Finalizes challenge using TOTP or backup code. |
 | `beginMfaEnrollment` / `verifyMfaEnrollment` | Issue encrypted secrets + confirm tokens. |
@@ -49,6 +49,6 @@ Each resolver/controller logs intent plus key identifiers (never secrets) to sim
 
 - Ensure `MFA_SECRET_KEY`, `REDIS_HOST`, and `REDIS_PORT` are set in production for hardened storage + scalable challenges.
 - Ensure PostgreSQL is reachable and `DATABASE_URL` is set before starting the service.
-- OTP enforcement for direct register-login is bookmarked in `AuthService.registerAndLogin`.
+- Configure `AUTH_SIGNUP_OTP_REQUIRED=true` and `AUTH_SIGNUP_OTP_CODE=<value>` to enforce OTP for direct register-login.
 
 Keeping this document beside the module helps cross-check behavior quickly; update both the code and here whenever auth flows evolve.

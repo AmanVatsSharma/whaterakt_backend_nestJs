@@ -200,6 +200,20 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   FEATURE_COMPLIANCE_ENABLED: string;
+
+  // Auth hardening
+  @IsString()
+  @IsOptional()
+  AUTH_SIGNUP_OTP_REQUIRED: string;
+
+  @IsString()
+  @IsOptional()
+  AUTH_SIGNUP_OTP_CODE: string;
+
+  // RBAC cache controls
+  @IsNumber()
+  @IsOptional()
+  RBAC_CACHE_TTL_MS: number = 15000;
 }
 
 export function validateConfig(config: Record<string, unknown>) {
