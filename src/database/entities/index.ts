@@ -30,6 +30,18 @@ import { TeamOrmEntity } from './team.entity';
 import { TemplateOrmEntity, TemplateStatus } from './template.entity';
 import { TenantOrmEntity } from './tenant.entity';
 import { UserOrmEntity } from './user.entity';
+import {
+  WhatsAppAssignmentAuditAction,
+  WhatsAppAssignmentAuditOrmEntity,
+} from './whatsapp-assignment-audit.entity';
+import {
+  WhatsAppChannelOrmEntity,
+  WhatsAppChannelStatus,
+} from './whatsapp-channel.entity';
+import {
+  WhatsAppManagedNumberOrmEntity,
+  WhatsAppManagedNumberStatus,
+} from './whatsapp-number.entity';
 
 export const DATABASE_ENTITIES = [
   TenantOrmEntity,
@@ -54,6 +66,9 @@ export const DATABASE_ENTITIES = [
   ShopifyCustomerOrmEntity,
   ShopifyProductOrmEntity,
   ShopifySyncLogOrmEntity,
+  WhatsAppChannelOrmEntity,
+  WhatsAppManagedNumberOrmEntity,
+  WhatsAppAssignmentAuditOrmEntity,
 ] as const;
 
 export {
@@ -83,4 +98,10 @@ export {
   TemplateStatus,
   TenantOrmEntity,
   UserOrmEntity,
+  WhatsAppAssignmentAuditAction,
+  WhatsAppAssignmentAuditOrmEntity,
+  WhatsAppChannelOrmEntity,
+  WhatsAppChannelStatus,
+  WhatsAppManagedNumberOrmEntity,
+  WhatsAppManagedNumberStatus,
 };

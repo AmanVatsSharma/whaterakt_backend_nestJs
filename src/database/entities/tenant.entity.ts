@@ -41,7 +41,7 @@ export class TenantOrmEntity extends BaseOrmEntity {
   region: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  featureFlags?: Record<string, boolean> | null;
+  featureFlags?: Record<string, unknown> | null;
 
   @Column({ type: 'timestamptz', nullable: true })
   deletedAt?: Date | null;

@@ -30,4 +30,5 @@
 - 2026-02-15: Added `ShopifyProduct` entity and migration for `lastProductsSyncAt` + product cache table.
 - 2026-02-15: Added migration freshness check script (`npm run check:migrations`) for CI and PR quality gates.
 - 2026-02-15: Added entity coverage baseline migration (`202602150003`) and extended migration check script to verify every DB entity token is referenced by migrations.
+- 2026-02-15: Added managed WhatsApp onboarding entities (`WhatsAppChannel`, `WhatsAppManagedNumber`, `WhatsAppAssignmentAudit`) and migration `202602150004`.
 
