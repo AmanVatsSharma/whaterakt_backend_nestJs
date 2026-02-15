@@ -1,14 +1,26 @@
-import { Processor, Process, InjectQueue } from '@nestjs/bull';
+/**
+* File: src/campaign/campaign.processor.ts
+* Module: campaign
+* Purpose: Bull processor for campaign dispatch fan-out.
+* Author: Aman Sharma / Novologic/ Codex
+* Last-updated: 2026-02-15
+* Notes:
+* - Pulls subscribed contacts from TypeORM and enqueues message jobs.
+* - Applies simple rate-window throttling between batches.
+*/
+import { InjectQueue, Process, Processor } from '@nestjs/bull';
 import { Job, Queue } from 'bull';
-import { PrismaService } from 'src/prisma.service';
 import { Logger } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { ContactOrmEntity } from '../database/entities';
 
 @Processor('campaigns')
 export class CampaignProcessor {
   private readonly logger = new Logger(CampaignProcessor.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    @InjectDataSource() private readonly dataSource: DataSource,
     @InjectQueue('messages') private readonly messageQueue: Queue,
   ) {}
 
@@ -16,7 +28,9 @@ export class CampaignProcessor {
   async handleDispatch(job: Job<{ tenantId: string; campaignId: string; messageTemplate?: any }>) {
     const { tenantId, campaignId, messageTemplate } = job.data;
 
-    const contacts = await this.prisma.contact.findMany({ where: { tenantId, subscribed: true } });
+    const contacts = await this.dataSource.getRepository(ContactOrmEntity).find({
+      where: { tenantId, subscribed: true },
+    });
     const perTenantRate = Number(process.env.CAMPAIGN_RATE_PER_MIN || 600); // messages/minute
     const batchSize = Math.max(1, Math.min(100, Math.floor(perTenantRate / 6))); // ~10s windows
     const batches = this.chunk(contacts, batchSize);
