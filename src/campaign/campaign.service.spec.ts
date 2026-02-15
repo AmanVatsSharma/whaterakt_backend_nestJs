@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CampaignService } from './campaign.service';
 import { getQueueToken } from '@nestjs/bull';
-import { PrismaService } from 'src/prisma.service';
+import { DataSource } from 'typeorm';
 
 describe('CampaignService', () => {
   let service: CampaignService;
@@ -11,7 +11,16 @@ describe('CampaignService', () => {
       providers: [
         CampaignService,
         { provide: getQueueToken('campaigns'), useValue: { add: jest.fn() } },
-        { provide: PrismaService, useValue: { campaign: { create: jest.fn(), findMany: jest.fn() } } },
+        {
+          provide: DataSource,
+          useValue: {
+            getRepository: jest.fn(() => ({
+              create: jest.fn((payload) => payload),
+              save: jest.fn(async (payload) => ({ id: 'campaign-1', ...payload })),
+              find: jest.fn(async () => []),
+            })),
+          },
+        },
       ],
     }).compile();
 
