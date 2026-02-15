@@ -1,52 +1,103 @@
+/**
+* File: src/whatsapp/whatsapp.service.ts
+* Module: whatsapp
+* Purpose: Outbound WhatsApp orchestration and compliance checks.
+* Author: Aman Sharma / Vedpragya/ Codex
+* Last-updated: 2026-02-15
+* Notes:
+* - Validates template/session/subscription constraints before queueing.
+* - Uses per-request tenantId arguments to avoid shared mutable state.
+*/
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { catchError, firstValueFrom } from 'rxjs';
 import { Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { BadRequestException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource, MoreThan } from 'typeorm';
 import { Retry } from '../core/decorators/retry.decorator';
-import { TenantAwareService } from '../core/services/tenant-aware.service';
 import { WhatsAppAdapter } from './whatsapp.adapter';
+import { ContactOrmEntity, MessageDirection, MessageOrmEntity, TemplateOrmEntity, TemplateStatus } from '../database/entities';
+import { MetricsService } from '../metrics/metrics.service';
+import { WhatsAppOnboardingService } from '../modules/whatsapp-onboarding';
 
 @Injectable()
-export class WhatsAppService extends TenantAwareService {
+export class WhatsAppService {
   private readonly logger = new Logger(WhatsAppService.name);
 
   constructor(
     private readonly httpService: HttpService,
     @InjectQueue('messages') private readonly messageQueue: Queue,
-    protected readonly prisma: PrismaService,
+    @InjectDataSource() private readonly dataSource: DataSource,
     private readonly adapter: WhatsAppAdapter,
-  ) {
-    super(prisma);
-  }
+    private readonly onboardingService: WhatsAppOnboardingService,
+    private readonly metrics: MetricsService,
+  ) {}
 
   @Retry(3, 1000)
-  async sendMessage(payload: any) {
+  async sendMessage(payload: any, tenantId?: string) {
     try {
+      if (tenantId) {
+        const readiness = await this.onboardingService.isTenantSendReady(tenantId);
+        if (!readiness.ready) {
+          this.logger.warn(
+            `Blocked send due onboarding gate tenant=${tenantId} reason=${readiness.reason}`,
+          );
+          this.metrics.incrementWhatsAppSendFailure(
+            readiness.reason || 'channel_not_ready',
+          );
+          return {
+            success: false,
+            blocked: true,
+            reason: readiness.reason || 'channel_not_ready',
+          };
+        }
+      }
+      if (tenantId) {
+        const perTenantDailyLimit = Number(
+          process.env.WHATSAPP_TENANT_DAILY_SEND_LIMIT || '0',
+        );
+        if (perTenantDailyLimit > 0) {
+          const sentInWindow = await this.dataSource.getRepository(MessageOrmEntity).count({
+            where: {
+              tenantId,
+              direction: MessageDirection.OUTBOUND,
+              createdAt: MoreThan(new Date(Date.now() - 24 * 60 * 60 * 1000)),
+            },
+          });
+          if (sentInWindow >= perTenantDailyLimit) {
+            this.logger.warn(`Blocked send daily cap tenant=${tenantId} cap=${perTenantDailyLimit}`);
+            this.metrics.incrementWhatsAppSendFailure('daily_send_limit_reached');
+            return { success: false, blocked: true, reason: 'daily_send_limit_reached' };
+          }
+        }
+      }
       // Block sends to unsubscribed contacts when to maps to a contact
-      if (this.tenantId && payload?.to) {
-        const existing = await this.prisma.contact.findFirst({ where: { tenantId: this.tenantId, phone: payload.to } });
+      if (tenantId && payload?.to) {
+        const existing = await this.dataSource.getRepository(ContactOrmEntity).findOne({
+          where: { tenantId, phone: payload.to },
+        });
         if (existing && existing.subscribed === false) {
-          this.logger.warn(`Blocked send to unsubscribed contact ${payload.to} tenant=${this.tenantId}`);
+          this.logger.warn(`Blocked send to unsubscribed contact ${payload.to} tenant=${tenantId}`);
+          this.metrics.incrementWhatsAppSendFailure('unsubscribed');
           return { success: false, blocked: true, reason: 'unsubscribed' };
         }
       }
       // Validate template usage for approved templates
-      if (payload?.templateName && this.tenantId) {
-        await this.validateTemplate(payload.templateName, this.tenantId);
+      if (payload?.templateName && tenantId) {
+        await this.validateTemplate(payload.templateName, tenantId);
       }
       // Enforce 24h session for non-template messages based on last inbound
-      if (!payload?.templateName && !payload?.template && payload?.type !== 'template' && this.tenantId && payload?.to) {
-        const lastInbound = await this.prisma.message.findFirst({
-          where: { tenantId: this.tenantId, from: payload.to, direction: 'INBOUND' },
-          orderBy: { createdAt: 'desc' },
+      if (!payload?.templateName && !payload?.template && payload?.type !== 'template' && tenantId && payload?.to) {
+        const lastInbound = await this.dataSource.getRepository(MessageOrmEntity).findOne({
+          where: { tenantId, from: payload.to, direction: MessageDirection.INBOUND },
+          order: { createdAt: 'DESC' },
         });
         const within24h = lastInbound ? (Date.now() - new Date(lastInbound.createdAt).getTime()) <= 24 * 60 * 60 * 1000 : false;
         if (!within24h) {
           this.logger.warn(`Blocked non-template message outside 24h window to ${payload.to}`);
+          this.metrics.incrementWhatsAppSendFailure('session_expired');
           return { success: false, blocked: true, reason: 'session_expired' };
         }
       }
@@ -56,16 +107,17 @@ export class WhatsAppService extends TenantAwareService {
       if (payload?.phone_number_id) {
         (normalized as any).phone_number_id = payload.phone_number_id;
       }
-      const jobData = { tenantId: this.tenantId, payload: normalized };
+      const jobData = { tenantId, payload: normalized, campaignId: payload?.campaignId };
       if (process.env.REDIS_HOST) {
         await this.messageQueue.add('message', jobData);
         return { success: true, queued: true };
       }
       // Fallback: send immediately without queue
-      const result = await this.adapter.sendMessage(normalized, this.tenantId);
+      const result = await this.adapter.sendMessage(normalized, tenantId);
       return { success: true, queued: false, result };
     } catch (e) {
       this.logger.error(`Failed to queue message: ${e}`);
+      this.metrics.incrementWhatsAppSendFailure('queue_or_adapter_error');
       return { success: false };
     }
   }
@@ -153,11 +205,11 @@ export class WhatsAppService extends TenantAwareService {
   }
 
   async validateTemplate(templateName: string, tenantId: string) {
-    const template = await this.prisma.template.findFirst({
-      where: { 
+    const template = await this.dataSource.getRepository(TemplateOrmEntity).findOne({
+      where: {
         name: templateName,
         tenantId,
-        status: 'APPROVED'
+        status: TemplateStatus.APPROVED,
       }
     });
     

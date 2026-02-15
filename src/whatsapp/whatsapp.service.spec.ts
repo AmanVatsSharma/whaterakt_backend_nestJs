@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WhatsappService } from './whatsapp.service';
 import { HttpModule } from '@nestjs/axios';
-import { PrismaService } from 'src/prisma.service';
 import { getQueueToken } from '@nestjs/bull';
 import { WhatsAppAdapter } from './whatsapp.adapter';
-import { ConfigService } from '@nestjs/config';
+import { DataSource } from 'typeorm';
+import { MetricsService } from '../metrics/metrics.service';
+import { WhatsAppOnboardingService } from '../modules/whatsapp-onboarding';
 
 describe('WhatsappService', () => {
   let service: WhatsappService;
@@ -14,10 +15,28 @@ describe('WhatsappService', () => {
       imports: [HttpModule],
       providers: [
         WhatsappService,
-        WhatsAppAdapter,
-        { provide: PrismaService, useValue: { contact: {}, template: {} } },
+        {
+          provide: WhatsAppAdapter,
+          useValue: { sendMessage: jest.fn(async () => ({ success: true })) },
+        },
+        {
+          provide: DataSource,
+          useValue: {
+            getRepository: jest.fn(() => ({
+              findOne: jest.fn(async () => null),
+              count: jest.fn(async () => 0),
+            })),
+          },
+        },
         { provide: getQueueToken('messages'), useValue: { add: jest.fn() } },
-        { provide: ConfigService, useValue: { get: jest.fn(() => undefined) } },
+        {
+          provide: WhatsAppOnboardingService,
+          useValue: { isTenantSendReady: jest.fn(async () => ({ ready: true })) },
+        },
+        {
+          provide: MetricsService,
+          useValue: { incrementWhatsAppSendFailure: jest.fn() },
+        },
       ],
     }).compile();
 
