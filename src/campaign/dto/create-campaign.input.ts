@@ -12,6 +12,6 @@ export class CreateCampaignInput {
   @Field({ nullable: true, description: 'Optional ISO datetime to schedule (immediate if omitted)' })
   scheduledAt?: Date;
 
-  @Field({ description: 'User ID who owns this campaign' })
-  userId: string;
+  @Field({ nullable: true, description: 'User ID who owns this campaign (auto-derived from auth context when omitted)' })
+  userId?: string;
 } 

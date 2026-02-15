@@ -73,6 +73,14 @@ class EnvironmentVariables {
   @IsOptional()
   WHATSAPP_DEFAULT_PHONE_NUMBER_ID: string;
 
+  @IsNumber()
+  @IsOptional()
+  WHATSAPP_ONBOARDING_REVIEW_SLA_HOURS: number = 48;
+
+  @IsNumber()
+  @IsOptional()
+  WHATSAPP_TENANT_DAILY_SEND_LIMIT: number = 0;
+
   @IsString()
   @IsOptional()
   JWT_SECRET: string = 'development-secret';
