@@ -2,7 +2,7 @@
  * File: src/common/errors/app.error.ts
  * Module: common-errors
  * Purpose: Base error type with status code + machine-readable code.
- * Author: Aman Sharma / Novologic/ Codex
+ * Author: Aman Sharma / Vedpragya/ Codex
  * Last-updated: 2026-02-15
  * Notes:
  * - Extend this class for all domain-specific errors.

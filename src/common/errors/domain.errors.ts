@@ -2,7 +2,7 @@
  * File: src/common/errors/domain.errors.ts
  * Module: common-errors
  * Purpose: Domain-specific AppError subclasses used across services.
- * Author: Aman Sharma / Novologic/ Codex
+ * Author: Aman Sharma / Vedpragya/ Codex
  * Last-updated: 2026-02-15
  * Notes:
  * - Includes requested trading-domain error placeholders for compatibility.
