@@ -27,7 +27,7 @@ export class MetricsService implements OnModuleInit {
 
   private readonly dualWriteFailureCounter = new Counter({
     name: 'dual_write_failures_total',
-    help: 'Number of failed Prisma -> TypeORM mirrors',
+    help: 'Number of failed legacy-to-primary DB mirror operations',
     labelNames: ['entity']
   });
 
@@ -35,6 +35,24 @@ export class MetricsService implements OnModuleInit {
     name: 'auth_events_total',
     help: 'Authentication events grouped by operation',
     labelNames: ['event']
+  });
+
+  private readonly whatsappWebhookEventsCounter = new Counter({
+    name: 'whatsapp_webhook_events_total',
+    help: 'WhatsApp webhook processing outcomes',
+    labelNames: ['result']
+  });
+
+  private readonly whatsappSendFailuresCounter = new Counter({
+    name: 'whatsapp_send_failures_total',
+    help: 'Outbound WhatsApp send failures by reason',
+    labelNames: ['reason']
+  });
+
+  private readonly queueDepthGauge = new Gauge({
+    name: 'queue_depth',
+    help: 'Queue backlog depth snapshot by queue name',
+    labelNames: ['queue']
   });
 
   constructor() {
@@ -58,6 +76,9 @@ export class MetricsService implements OnModuleInit {
     this.registry.registerMetric(this.rateLimitBlocksCounter);
     this.registry.registerMetric(this.authEventsCounter);
     this.registry.registerMetric(this.dualWriteFailureCounter);
+    this.registry.registerMetric(this.whatsappWebhookEventsCounter);
+    this.registry.registerMetric(this.whatsappSendFailuresCounter);
+    this.registry.registerMetric(this.queueDepthGauge);
 
     // Default Node.js/process metrics
     collectDefaultMetrics({ register: this.registry });
@@ -91,11 +112,31 @@ export class MetricsService implements OnModuleInit {
     this.rateLimitBlocksCounter.inc({ tenantId });
   }
 
-  incrementAuthEvent(event: 'register' | 'login' | 'mfa_challenge' | 'mfa_verified') {
+  incrementAuthEvent(
+    event:
+      | 'register'
+      | 'login'
+      | 'mfa_challenge'
+      | 'mfa_verified'
+      | 'register_otp_failed'
+      | 'register_otp_verified',
+  ) {
     this.authEventsCounter.inc({ event });
   }
 
   incrementDualWriteFailure(entity: 'tenant' | 'user') {
     this.dualWriteFailureCounter.inc({ entity });
+  }
+
+  incrementWhatsAppWebhookEvent(result: 'accepted' | 'invalid_signature' | 'failed') {
+    this.whatsappWebhookEventsCounter.inc({ result });
+  }
+
+  incrementWhatsAppSendFailure(reason: string) {
+    this.whatsappSendFailuresCounter.inc({ reason });
+  }
+
+  setQueueDepth(queue: string, depth: number) {
+    this.queueDepthGauge.set({ queue }, depth);
   }
 } 
