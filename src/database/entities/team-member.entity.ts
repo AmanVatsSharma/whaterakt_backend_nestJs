@@ -2,7 +2,7 @@
 * File: src/database/entities/team-member.entity.ts
 * Module: database
 * Purpose: Team membership model linking users to teams.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Unique by team + user to prevent duplicate memberships.

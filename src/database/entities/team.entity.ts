@@ -2,7 +2,7 @@
 * File: src/database/entities/team.entity.ts
 * Module: database
 * Purpose: Team workspace model for tenant-level onboarding flows.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Team names are unique inside a tenant.

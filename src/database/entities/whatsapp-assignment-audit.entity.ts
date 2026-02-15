@@ -2,7 +2,7 @@
 * File: src/database/entities/whatsapp-assignment-audit.entity.ts
 * Module: database
 * Purpose: Assignment and lifecycle audit trail for managed WhatsApp channels.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Captures operator actions for assignment, release, suspension, activation.
