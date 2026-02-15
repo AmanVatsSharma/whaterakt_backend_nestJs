@@ -2,7 +2,7 @@
 * File: src/inbox/inbox.module.ts
 * Module: inbox
 * Purpose: Inbox module for conversation assignment, status, and notes.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Conversation service uses TypeORM-managed conversation tables.

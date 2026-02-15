@@ -38,7 +38,7 @@
 
 **Tests:** Includes service-level unit test for store connect upsert.
 
-**Change-log:** (auto-updated by Aman Sharma / Novologicon edits)
+**Change-log:** (auto-updated by Aman Sharma / Vedpragyaon edits)
 - 2026-02-15: Added Shopify integration module with connection, sync, and webhook handlers.
 - 2026-02-15: Migrated Shopify persistence to TypeORM repositories.
 - 2026-02-15: Added OAuth start/callback flow with signed state + Shopify HMAC verification.

@@ -2,7 +2,7 @@
  * File: src/modules/shopify-integration/index.ts
  * Module: shopify-integration
  * Purpose: Public exports for Shopify integration module.
- * Author: Aman Sharma / Novologic/ Codex
+ * Author: Aman Sharma / Vedpragya/ Codex
  * Last-updated: 2026-02-15
  * Notes:
  * - Keep barrel exports explicit.
