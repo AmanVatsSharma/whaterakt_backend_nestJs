@@ -27,6 +27,7 @@ describe('RbacGuard', () => {
     guard = new RbacGuard(reflectorMock, rbacServiceMock);
     gqlCreateSpy = jest.spyOn(GqlExecutionContext, 'create').mockReturnValue({
       getContext: () => ({ req: { user: { sub: 'user-1' } } }),
+      getArgs: () => ({}),
     } as any);
   });
 
@@ -47,7 +48,11 @@ describe('RbacGuard', () => {
 
     const result = await guard.canActivate(createExecutionContext());
     expect(result).toBe(true);
-    expect(rbacServiceMock.hasAccess).toHaveBeenCalledWith('user-1', 'campaign', 'publish');
+    expect(rbacServiceMock.hasAccess).toHaveBeenCalledWith('user-1', 'campaign', 'publish', {
+      tenantId: undefined,
+      requiredPlan: undefined,
+      attributes: {},
+    });
   });
 
   it('throws UnauthorizedException when RBAC service denies access', async () => {
