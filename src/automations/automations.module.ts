@@ -2,7 +2,7 @@
 * File: src/automations/automations.module.ts
 * Module: automations
 * Purpose: Automation module for inbound keyword reaction workflows.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Service now reads automation rules from TypeORM entities.

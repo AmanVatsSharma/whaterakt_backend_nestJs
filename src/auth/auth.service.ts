@@ -2,7 +2,7 @@
 * File: src/auth/auth.service.ts
 * Module: auth
 * Purpose: Authentication and MFA service using TypeORM persistence.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Signup flow uses a transaction for tenant + user creation consistency.

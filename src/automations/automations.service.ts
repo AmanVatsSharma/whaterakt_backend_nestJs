@@ -2,7 +2,7 @@
 * File: src/automations/automations.service.ts
 * Module: automations
 * Purpose: Automation evaluation service for inbound keyword and drip workflows.
-* Author: Aman Sharma / Novologic/ Codex
+* Author: Aman Sharma / Vedpragya/ Codex
 * Last-updated: 2026-02-15
 * Notes:
 * - Fetches enabled rules from TypeORM and enqueues outbound replies via queue.
