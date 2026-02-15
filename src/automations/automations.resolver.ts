@@ -6,7 +6,7 @@
  * created: 2026-02-15
  */
 
-import { Context, Field, ObjectType, Query, Resolver } from '@nestjs/graphql';
+import { Args, Context, Field, Mutation, ObjectType, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../core/guards/gql-auth.guard';
 import { TenantGuard } from '../core/guards/tenant.guard';
@@ -38,5 +38,75 @@ export class AutomationsResolver {
   @Query(() => [AutomationListItem])
   async automations(@Context() context: { tenant: { id: string } }) {
     return this.automationsService.listAutomations(context?.tenant?.id);
+  }
+
+  @Mutation(() => AutomationListItem)
+  async createAutomation(
+    @Args('type') type: string,
+    @Args('trigger', { nullable: true }) trigger: string | null,
+    @Args('enabled', { nullable: true }) enabled: boolean | null,
+    @Args('definitionJson', { nullable: true }) definitionJson: string | null,
+    @Context() context: { tenant: { id: string } },
+  ) {
+    return this.automationsService.createAutomation(context?.tenant?.id, {
+      type,
+      trigger,
+      enabled: enabled ?? undefined,
+      definition: this.parseDefinition(definitionJson),
+    });
+  }
+
+  @Mutation(() => AutomationListItem)
+  async updateAutomation(
+    @Args('automationId') automationId: string,
+    @Args('type', { nullable: true }) type: string | null,
+    @Args('trigger', { nullable: true }) trigger: string | null,
+    @Args('enabled', { nullable: true }) enabled: boolean | null,
+    @Args('definitionJson', { nullable: true }) definitionJson: string | null,
+    @Context() context: { tenant: { id: string } },
+  ) {
+    return this.automationsService.updateAutomation(context?.tenant?.id, automationId, {
+      type: type ?? undefined,
+      trigger,
+      enabled: enabled ?? undefined,
+      definition: this.parseDefinition(definitionJson),
+    });
+  }
+
+  @Mutation(() => AutomationListItem)
+  async setAutomationEnabled(
+    @Args('automationId') automationId: string,
+    @Args('enabled') enabled: boolean,
+    @Context() context: { tenant: { id: string } },
+  ) {
+    return this.automationsService.setAutomationEnabled(
+      context?.tenant?.id,
+      automationId,
+      enabled,
+    );
+  }
+
+  @Mutation(() => Boolean)
+  async deleteAutomation(
+    @Args('automationId') automationId: string,
+    @Context() context: { tenant: { id: string } },
+  ) {
+    await this.automationsService.deleteAutomation(context?.tenant?.id, automationId);
+    return true;
+  }
+
+  private parseDefinition(definitionJson?: string | null) {
+    if (!definitionJson) {
+      return undefined;
+    }
+    try {
+      const parsed = JSON.parse(definitionJson);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      return {};
+    }
+    return {};
   }
 }

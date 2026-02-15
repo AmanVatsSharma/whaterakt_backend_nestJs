@@ -8,7 +8,7 @@
 * - Fetches enabled rules from TypeORM and enqueues outbound replies via queue.
 * - Runs a drip scheduler tick to enqueue due steps exactly once.
 */
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -78,6 +78,93 @@ export class AutomationsService {
       definition: automation.definition || null,
       createdAt: automation.createdAt?.toISOString?.() || null,
     }));
+  }
+
+  async createAutomation(
+    tenantId: string,
+    input: {
+      type: string;
+      enabled?: boolean;
+      trigger?: string | null;
+      definition?: Record<string, unknown> | null;
+    },
+  ) {
+    if (!tenantId || !input?.type) {
+      throw new BadRequestException('tenantId and type are required');
+    }
+    const repository = this.dataSource.getRepository(AutomationOrmEntity);
+    const definition = {
+      ...(input.definition || {}),
+      ...(input.trigger ? { trigger: input.trigger } : {}),
+    };
+    const created = await repository.save(
+      repository.create({
+        tenantId,
+        type: input.type,
+        enabled: input.enabled ?? true,
+        definition,
+      }),
+    );
+    return this.mapAutomation(created);
+  }
+
+  async updateAutomation(
+    tenantId: string,
+    automationId: string,
+    input: {
+      type?: string;
+      enabled?: boolean;
+      trigger?: string | null;
+      definition?: Record<string, unknown> | null;
+    },
+  ) {
+    const repository = this.dataSource.getRepository(AutomationOrmEntity);
+    const automation = await repository.findOne({
+      where: { id: automationId, tenantId },
+    });
+    if (!automation) {
+      throw new NotFoundException('Automation not found for tenant');
+    }
+    if (input.type) {
+      automation.type = input.type;
+    }
+    if (typeof input.enabled === 'boolean') {
+      automation.enabled = input.enabled;
+    }
+    const definition = {
+      ...((automation.definition || {}) as Record<string, unknown>),
+      ...((input.definition || {}) as Record<string, unknown>),
+    };
+    if (input.trigger !== undefined) {
+      if (input.trigger) {
+        definition.trigger = input.trigger;
+      } else {
+        delete definition.trigger;
+      }
+    }
+    automation.definition = definition;
+    const saved = await repository.save(automation);
+    return this.mapAutomation(saved);
+  }
+
+  async setAutomationEnabled(
+    tenantId: string,
+    automationId: string,
+    enabled: boolean,
+  ) {
+    return this.updateAutomation(tenantId, automationId, { enabled });
+  }
+
+  async deleteAutomation(tenantId: string, automationId: string) {
+    const repository = this.dataSource.getRepository(AutomationOrmEntity);
+    const automation = await repository.findOne({
+      where: { id: automationId, tenantId },
+    });
+    if (!automation) {
+      throw new NotFoundException('Automation not found for tenant');
+    }
+    await repository.remove(automation);
+    return { ok: true };
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
@@ -227,5 +314,16 @@ export class AutomationsService {
         metadata,
       },
     });
+  }
+
+  private mapAutomation(automation: AutomationOrmEntity) {
+    return {
+      id: automation.id,
+      type: automation.type,
+      enabled: automation.enabled,
+      trigger: String((automation.definition as Record<string, unknown> | null)?.trigger || ''),
+      definition: automation.definition || null,
+      createdAt: automation.createdAt?.toISOString?.() || null,
+    };
   }
 }
