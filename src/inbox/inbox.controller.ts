@@ -9,8 +9,10 @@
  * - Read listConversations first.
  */
 
-import { Body, Controller, Get, Headers, Param, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
+import { RestAuthGuard } from '../core/guards/rest-auth.guard';
+import { RestTenantGuard } from '../core/guards/rest-tenant.guard';
 import { ConversationService } from './conversation.service';
 import { AssignConversationDto } from './dto/assign-conversation.dto';
 import { SetConversationStatusDto } from './dto/set-conversation-status.dto';
@@ -25,6 +27,7 @@ type RequestWithTenant = Request & {
 };
 
 @Controller('inbox')
+@UseGuards(RestAuthGuard, RestTenantGuard)
 export class InboxController {
   constructor(private readonly conversationService: ConversationService) {}
 
@@ -46,6 +49,20 @@ export class InboxController {
     }
 
     const data = await this.conversationService.listConversations(tenantId);
+    return { data };
+  }
+
+  @Get('conversations/:conversationId/thread')
+  async getThread(
+    @Req() request: RequestWithTenant,
+    @Param('conversationId') conversationId: string,
+    @Headers('x-tenant-id') tenantHeader?: string,
+  ) {
+    const tenantId = this.resolveTenantId(request, tenantHeader);
+    const data = await this.conversationService.getConversationThread(
+      tenantId,
+      conversationId,
+    );
     return { data };
   }
 

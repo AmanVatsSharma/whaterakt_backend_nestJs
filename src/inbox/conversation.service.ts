@@ -16,6 +16,9 @@ import {
   ConversationOrmEntity,
   ConversationStatus,
   ConversationTagOrmEntity,
+  MessageDirection,
+  MessageOrmEntity,
+  MessageStatus,
   TagOrmEntity,
 } from '../database/entities';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
@@ -109,7 +112,7 @@ export class ConversationService {
     if (!to) {
       throw new BadRequestException('Conversation contact phone is unavailable');
     }
-    await this.whatsappService.sendMessage(
+    const sendResult = await this.whatsappService.sendMessage(
       {
         to,
         type: 'text',
@@ -117,7 +120,76 @@ export class ConversationService {
       },
       tenantId,
     );
-    return { ok: true };
+    if (sendResult?.success === false) {
+      throw new BadRequestException(
+        sendResult?.reason
+          ? `Outbound message blocked: ${sendResult.reason}`
+          : 'Outbound message failed',
+      );
+    }
+
+    const messageRepository = this.dataSource.getRepository(MessageOrmEntity);
+    await messageRepository.save(
+      messageRepository.create({
+        content: text.trim(),
+        status: sendResult?.queued ? MessageStatus.DRAFT : MessageStatus.SENT,
+        direction: MessageDirection.OUTBOUND,
+        to,
+        tenantId,
+        conversationId,
+      }),
+    );
+    await this.dataSource.getRepository(ConversationOrmEntity).update(
+      { id: conversationId, tenantId },
+      { lastMessage: new Date() },
+    );
+    return { ok: true, queued: Boolean(sendResult?.queued) };
+  }
+
+  async getConversationThread(tenantId: string, conversationId: string) {
+    const conversation = await this.dataSource.getRepository(ConversationOrmEntity).findOne({
+      where: { id: conversationId, tenantId },
+      relations: {
+        contact: true,
+        tags: { tag: true },
+        notes: true,
+        messages: true,
+      },
+    });
+    if (!conversation) {
+      throw new NotFoundException('Conversation not found for tenant');
+    }
+
+    const sortedMessages = [...(conversation.messages || [])].sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+    );
+    const sortedNotes = [...(conversation.notes || [])].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
+
+    return {
+      id: conversation.id,
+      contactId: conversation.contactId,
+      contactPhone: conversation.contact?.phone || null,
+      status: conversation.status,
+      assignedUserId: conversation.assignedUserId || null,
+      tags: conversation.tags?.map((tagRef) => tagRef.tag.name) || [],
+      messages: sortedMessages.map((message) => ({
+        id: message.id,
+        content: message.content,
+        direction: message.direction,
+        status: message.status,
+        createdAt: message.createdAt.toISOString(),
+        from: message.from || null,
+        to: message.to || null,
+      })),
+      notes: sortedNotes.map((note) => ({
+        id: note.id,
+        content: note.content,
+        userId: note.userId,
+        createdAt: note.createdAt.toISOString(),
+      })),
+    };
   }
 
   private async ensureConversation(
