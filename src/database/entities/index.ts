@@ -36,6 +36,7 @@ import {
 } from './whatsapp-assignment-audit.entity';
 import {
   WhatsAppChannelOrmEntity,
+  WhatsAppObaStatus,
   WhatsAppChannelStatus,
 } from './whatsapp-channel.entity';
 import {
@@ -101,6 +102,7 @@ export {
   WhatsAppAssignmentAuditAction,
   WhatsAppAssignmentAuditOrmEntity,
   WhatsAppChannelOrmEntity,
+  WhatsAppObaStatus,
   WhatsAppChannelStatus,
   WhatsAppManagedNumberOrmEntity,
   WhatsAppManagedNumberStatus,

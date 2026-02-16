@@ -21,6 +21,13 @@ export enum WhatsAppChannelStatus {
   SUSPENDED = 'SUSPENDED',
 }
 
+export enum WhatsAppObaStatus {
+  NOT_APPLIED = 'NOT_APPLIED',
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
 @Entity({ name: 'WhatsAppChannel' })
 @Index(['tenantId'], { unique: true })
 @Index(['phoneNumberId'], { unique: true, where: '"phoneNumberId" IS NOT NULL' })
@@ -73,6 +80,24 @@ export class WhatsAppChannelOrmEntity extends BaseOrmEntity {
 
   @Column({ type: 'varchar', length: 64, nullable: true })
   qualityRating?: string | null;
+
+  @Column({ type: 'boolean', default: false })
+  obaEligible: boolean;
+
+  @Column({ type: 'varchar', length: 32, default: WhatsAppObaStatus.NOT_APPLIED })
+  obaStatus: WhatsAppObaStatus;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  obaAppliedAt?: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  obaApprovedAt?: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  obaRejectedAt?: Date | null;
+
+  @Column({ type: 'text', nullable: true })
+  obaReviewNotes?: string | null;
 
   @Column({ type: 'timestamptz', nullable: true })
   webhookVerifiedAt?: Date | null;
