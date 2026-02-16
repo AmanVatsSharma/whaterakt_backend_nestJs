@@ -9,8 +9,12 @@
  * - Read validateWebhook and rotateApiKey first.
  */
 
-import { Body, Controller, Get, Headers, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
+import { RestAuthGuard } from '../../../core/guards/rest-auth.guard';
+import { RestTenantGuard } from '../../../core/guards/rest-tenant.guard';
+import { RequirePermissions } from '../../../rbac/rbac.decorator';
+import { RbacGuard } from '../../../rbac/rbac.guard';
 import { ValidateWebhookDto } from '../dtos/validate-webhook.dto';
 import { IntegrationsService } from '../services/integrations.service';
 import { WorkspaceSettingsDto } from '../dtos/workspace-settings.dto';
@@ -20,6 +24,7 @@ type RequestWithTenant = Request & {
 };
 
 @Controller('integrations')
+@UseGuards(RestAuthGuard, RestTenantGuard)
 export class IntegrationsController {
   constructor(private readonly integrationsService: IntegrationsService) {}
 
@@ -32,11 +37,15 @@ export class IntegrationsController {
   }
 
   @Post('webhook/validate')
+  @UseGuards(RbacGuard)
+  @RequirePermissions({ resource: 'integrations', action: 'manage' })
   validateWebhook(@Body() body: ValidateWebhookDto) {
     return this.integrationsService.validateWebhook(body?.url);
   }
 
   @Post('api-keys/generate')
+  @UseGuards(RbacGuard)
+  @RequirePermissions({ resource: 'integrations', action: 'manage' })
   async rotateApiKey(
     @Req() request: RequestWithTenant,
     @Headers('x-tenant-id') tenantHeader?: string,
@@ -46,6 +55,8 @@ export class IntegrationsController {
   }
 
   @Get('workspace-settings')
+  @UseGuards(RbacGuard)
+  @RequirePermissions({ resource: 'integrations', action: 'manage' })
   async getWorkspaceSettings(
     @Req() request: RequestWithTenant,
     @Headers('x-tenant-id') tenantHeader?: string,
@@ -55,6 +66,8 @@ export class IntegrationsController {
   }
 
   @Post('workspace-settings')
+  @UseGuards(RbacGuard)
+  @RequirePermissions({ resource: 'integrations', action: 'manage' })
   async saveWorkspaceSettings(
     @Req() request: RequestWithTenant,
     @Body() body: WorkspaceSettingsDto,

@@ -35,4 +35,5 @@
 - 2026-02-15: Added integrations module for BFF-backed settings API operations.
 - 2026-02-15: Switched tenant API key rotation persistence to TypeORM.
 - 2026-02-15: Added workspace settings read/write APIs backed by tenant feature flag JSON storage.
+- 2026-02-16: Added REST auth + tenant guards and RBAC permissions for integrations settings endpoints.
 
