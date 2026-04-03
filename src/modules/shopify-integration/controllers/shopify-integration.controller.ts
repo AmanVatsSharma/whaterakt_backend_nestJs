@@ -9,8 +9,12 @@
  * - Keep payload contracts stable for frontend BFF routes.
  */
 
-import { Body, Controller, Get, Headers, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
+import { RestAuthGuard } from '../../../core/guards/rest-auth.guard';
+import { RestTenantGuard } from '../../../core/guards/rest-tenant.guard';
+import { RequirePermissions } from '../../../rbac/rbac.decorator';
+import { RbacGuard } from '../../../rbac/rbac.guard';
 import { ConnectShopifyDto } from '../dtos/connect-shopify.dto';
 import { ShopifyOauthCallbackDto } from '../dtos/shopify-oauth-callback.dto';
 import { ShopifyOauthStartDto } from '../dtos/shopify-oauth-start.dto';
@@ -29,6 +33,8 @@ export class ShopifyIntegrationController {
   ) {}
 
   @Get('oauth/start')
+  @UseGuards(RestAuthGuard, RestTenantGuard, RbacGuard)
+  @RequirePermissions({ resource: 'integrations', action: 'manage' })
   async oauthStart(
     @Query() query: ShopifyOauthStartDto,
     @Req() request: RequestWithTenant,
@@ -50,6 +56,8 @@ export class ShopifyIntegrationController {
   }
 
   @Post('connect')
+  @UseGuards(RestAuthGuard, RestTenantGuard, RbacGuard)
+  @RequirePermissions({ resource: 'integrations', action: 'manage' })
   async connectStore(
     @Body() body: ConnectShopifyDto,
     @Req() request: RequestWithTenant,
@@ -60,6 +68,8 @@ export class ShopifyIntegrationController {
   }
 
   @Post('sync/orders')
+  @UseGuards(RestAuthGuard, RestTenantGuard, RbacGuard)
+  @RequirePermissions({ resource: 'integrations', action: 'manage' })
   async syncOrders(
     @Body() body: SyncShopifyDto,
     @Req() request: RequestWithTenant,
@@ -70,6 +80,8 @@ export class ShopifyIntegrationController {
   }
 
   @Post('sync/customers')
+  @UseGuards(RestAuthGuard, RestTenantGuard, RbacGuard)
+  @RequirePermissions({ resource: 'integrations', action: 'manage' })
   async syncCustomers(
     @Body() body: SyncShopifyDto,
     @Req() request: RequestWithTenant,
@@ -80,6 +92,8 @@ export class ShopifyIntegrationController {
   }
 
   @Post('sync/products')
+  @UseGuards(RestAuthGuard, RestTenantGuard, RbacGuard)
+  @RequirePermissions({ resource: 'integrations', action: 'manage' })
   async syncProducts(
     @Body() body: SyncShopifyDto,
     @Req() request: RequestWithTenant,
@@ -144,6 +158,8 @@ export class ShopifyIntegrationController {
   }
 
   @Get('status')
+  @UseGuards(RestAuthGuard, RestTenantGuard, RbacGuard)
+  @RequirePermissions({ resource: 'integrations', action: 'manage' })
   async status(
     @Req() request: RequestWithTenant,
     @Headers('x-tenant-id') tenantHeader?: string

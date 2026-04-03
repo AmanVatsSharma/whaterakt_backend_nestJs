@@ -6,10 +6,10 @@
  * created: 2026-02-15
  */
 
-import { IsString, MinLength } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class AssignConversationDto {
+  @IsOptional()
   @IsString()
-  @MinLength(1)
-  userId: string;
+  userId?: string;
 }

@@ -21,6 +21,8 @@
 
 **APIs:**
 - REST:
+  - `GET /shopify/oauth/start`
+  - `GET /shopify/oauth/callback`
   - `POST /shopify/connect`
   - `POST /shopify/sync/orders`
   - `POST /shopify/sync/customers`
@@ -51,4 +53,5 @@
 - 2026-02-15: Auto-seeded default Shopify event automations during successful store connect.
 - 2026-02-15: Wired Shopify webhook handlers to trigger commerce journeys through automations service.
 - 2026-02-15: Extended Shopify status payload with enabled commerce journey count.
+- 2026-02-16: Added REST auth + tenant guard + RBAC protection for connect/sync/status and oauth start endpoints.
 
