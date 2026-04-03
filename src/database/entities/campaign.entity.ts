@@ -31,6 +31,15 @@ export class CampaignOrmEntity {
   @Column({ type: 'timestamptz', nullable: true })
   scheduledAt?: Date | null;
 
+  @Column({ type: 'text', nullable: true })
+  messageBody?: string | null;
+
+  @Column({ type: 'varchar', length: 191, nullable: true })
+  templateName?: string | null;
+
+  @Column({ type: 'text', array: true, default: () => 'ARRAY[]::text[]' })
+  audienceContactIds: string[];
+
   @Column({ type: 'uuid' })
   userId: string;
 

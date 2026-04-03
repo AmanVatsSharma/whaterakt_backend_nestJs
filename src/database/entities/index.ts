@@ -9,6 +9,7 @@
 * - Export order is flat to simplify imports across modules.
 */
 import { AutomationOrmEntity } from './automation.entity';
+import { AutomationExecutionLogOrmEntity } from './automation-execution-log.entity';
 import { CampaignOrmEntity } from './campaign.entity';
 import { ConsentLogOrmEntity } from './consent-log.entity';
 import { ContactOrmEntity } from './contact.entity';
@@ -58,6 +59,7 @@ export const DATABASE_ENTITIES = [
   ContactTagOrmEntity,
   ConversationTagOrmEntity,
   AutomationOrmEntity,
+  AutomationExecutionLogOrmEntity,
   ConsentLogOrmEntity,
   TeamOrmEntity,
   TeamInviteOrmEntity,
@@ -74,6 +76,7 @@ export const DATABASE_ENTITIES = [
 
 export {
   AutomationOrmEntity,
+  AutomationExecutionLogOrmEntity,
   CampaignOrmEntity,
   ConsentLogOrmEntity,
   ContactOrmEntity,
