@@ -10,6 +10,7 @@
 */
 import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Contact } from './entities/contact.entity';
+import { AudienceSegment } from './entities/audience-segment.entity';
 import { CreateContactInput } from './dto/create-contact.input';
 import { UseGuards } from '@nestjs/common';
 import { TenantGuard } from '../core/guards/tenant.guard';
@@ -32,7 +33,19 @@ export class ContactResolver {
   }
 
   @Query(() => [Contact])
-  async contacts(@Context() context: { tenant: Tenant }) {
-    return this.contactService.findAll(context?.tenant?.id);
+  async contacts(
+    @Args('search', { nullable: true }) search: string | null,
+    @Args('segmentId', { nullable: true }) segmentId: string | null,
+    @Context() context: { tenant: Tenant },
+  ) {
+    return this.contactService.findAll(context?.tenant?.id, {
+      search: search || undefined,
+      segmentId: segmentId || undefined,
+    });
+  }
+
+  @Query(() => [AudienceSegment])
+  async audienceSegments(@Context() context: { tenant: Tenant }) {
+    return this.contactService.listSegments(context?.tenant?.id);
   }
 }

@@ -29,6 +29,18 @@ export class Campaign {
   @Field({ nullable: true, description: 'Planned schedule datetime (if any)' })
   scheduledAt?: Date;
 
+  @Field({ nullable: true, description: 'Outbound message body for text campaigns' })
+  messageBody?: string;
+
+  @Field({ nullable: true, description: 'Template name for template-based campaigns' })
+  templateName?: string;
+
+  @Field(() => [String], {
+    nullable: true,
+    description: 'Optional explicit audience contact ids for targeted campaigns',
+  })
+  audienceContactIds?: string[];
+
   @Field({ description: 'Creation timestamp' })
   createdAt: Date;
 } 
