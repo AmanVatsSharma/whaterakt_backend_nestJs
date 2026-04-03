@@ -7,7 +7,20 @@ describe('TemplateResolver', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TemplateResolver, { provide: TemplateService, useValue: { syncTemplates: jest.fn() } }],
+      providers: [
+        TemplateResolver,
+        {
+          provide: TemplateService,
+          useValue: {
+            syncTemplates: jest.fn(),
+            listTemplates: jest.fn(() => []),
+            createTemplate: jest.fn(),
+            updateTemplate: jest.fn(),
+            setTemplateStatus: jest.fn(),
+            deleteTemplate: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     resolver = module.get<TemplateResolver>(TemplateResolver);
