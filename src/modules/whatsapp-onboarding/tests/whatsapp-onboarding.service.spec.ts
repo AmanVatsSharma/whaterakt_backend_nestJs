@@ -102,4 +102,59 @@ describe('WhatsAppOnboardingService', () => {
     const result = await service.resolvePhoneNumberIdByTenant('tenant-1');
     expect(result).toBe('phone-123');
   });
+
+  it('blocks readiness when managed number is not assigned to tenant', async () => {
+    channelRepository.findOne.mockResolvedValue({
+      tenantId: 'tenant-1',
+      status: 'ACTIVE',
+      phoneNumberId: 'phone-123',
+      webhookVerifiedAt: new Date(),
+    });
+    numberRepository.findOne.mockResolvedValue({
+      phoneNumberId: 'phone-123',
+      status: 'AVAILABLE',
+      assignedTenantId: null,
+    });
+
+    const result = await service.isTenantSendReady('tenant-1');
+    expect(result.ready).toBe(false);
+    expect(result.reason).toBe('managed_number_not_ready');
+  });
+
+  it('rejects invalid channel status transition from NEW to ACTIVE', async () => {
+    channelRepository.findOne.mockResolvedValue({
+      tenantId: 'tenant-1',
+      status: 'NEW',
+      phoneNumberId: 'phone-123',
+      webhookVerifiedAt: new Date(),
+    });
+
+    await expect(
+      service.updateChannelStatus({
+        tenantId: 'tenant-1',
+        status: 'ACTIVE' as any,
+      }),
+    ).rejects.toThrow('Invalid channel status transition NEW -> ACTIVE');
+  });
+
+  it('rejects OBA pending update when tenant is not eligible', async () => {
+    channelRepository.findOne.mockResolvedValue({
+      tenantId: 'tenant-1',
+      status: 'VERIFIED',
+      phoneNumberId: 'phone-123',
+      webhookVerifiedAt: new Date(),
+      businessLegalName: 'Acme Pvt Ltd',
+      contactEmail: 'ops@acme.example',
+      expectedDailyVolume: 5000,
+      obaStatus: 'NOT_APPLIED',
+      obaEligible: false,
+    });
+
+    await expect(
+      service.updateObaStatus({
+        tenantId: 'tenant-1',
+        obaStatus: 'PENDING' as any,
+      }),
+    ).rejects.toThrow('Tenant is not OBA-eligible yet');
+  });
 });

@@ -22,12 +22,14 @@ import {
   WhatsAppAssignmentAuditAction,
   WhatsAppAssignmentAuditOrmEntity,
   WhatsAppChannelOrmEntity,
+  WhatsAppObaStatus,
   WhatsAppChannelStatus,
   WhatsAppManagedNumberOrmEntity,
   WhatsAppManagedNumberStatus,
 } from '../../../database/entities';
 import { AssignWhatsAppNumberDto } from '../dtos/assign-whatsapp-number.dto';
 import { CreateWhatsAppManagedNumberDto } from '../dtos/create-whatsapp-managed-number.dto';
+import { SetWhatsAppObaStatusDto } from '../dtos/set-whatsapp-oba-status.dto';
 import { SetWhatsAppChannelStatusDto } from '../dtos/set-whatsapp-channel-status.dto';
 import { UpsertWhatsAppOnboardingDto } from '../dtos/upsert-whatsapp-onboarding.dto';
 import {
@@ -37,6 +39,36 @@ import {
 
 @Injectable()
 export class WhatsAppOnboardingService {
+  private readonly allowedTransitions: Record<
+    WhatsAppChannelStatus,
+    WhatsAppChannelStatus[]
+  > = {
+    [WhatsAppChannelStatus.NEW]: [
+      WhatsAppChannelStatus.DOCS_PENDING,
+      WhatsAppChannelStatus.VERIFIED,
+      WhatsAppChannelStatus.SUSPENDED,
+    ],
+    [WhatsAppChannelStatus.DOCS_PENDING]: [
+      WhatsAppChannelStatus.VERIFIED,
+      WhatsAppChannelStatus.SUSPENDED,
+    ],
+    [WhatsAppChannelStatus.VERIFIED]: [
+      WhatsAppChannelStatus.NUMBER_ASSIGNED,
+      WhatsAppChannelStatus.ACTIVE,
+      WhatsAppChannelStatus.SUSPENDED,
+    ],
+    [WhatsAppChannelStatus.NUMBER_ASSIGNED]: [
+      WhatsAppChannelStatus.ACTIVE,
+      WhatsAppChannelStatus.SUSPENDED,
+      WhatsAppChannelStatus.VERIFIED,
+    ],
+    [WhatsAppChannelStatus.ACTIVE]: [
+      WhatsAppChannelStatus.SUSPENDED,
+      WhatsAppChannelStatus.VERIFIED,
+    ],
+    [WhatsAppChannelStatus.SUSPENDED]: [WhatsAppChannelStatus.VERIFIED],
+  };
+
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
   async getTenantStatus(tenantId: string): Promise<WhatsAppOnboardingStatusEntity> {
@@ -64,6 +96,12 @@ export class WhatsAppOnboardingService {
       phoneNumberId: channel.phoneNumberId ?? null,
       phoneNumberE164: channel.phoneNumberE164 ?? null,
       wabaId: channel.wabaId ?? null,
+      obaEligible: channel.obaEligible ?? false,
+      obaStatus: channel.obaStatus ?? WhatsAppObaStatus.NOT_APPLIED,
+      obaAppliedAt: channel.obaAppliedAt?.toISOString() ?? null,
+      obaApprovedAt: channel.obaApprovedAt?.toISOString() ?? null,
+      obaRejectedAt: channel.obaRejectedAt?.toISOString() ?? null,
+      obaReviewNotes: channel.obaReviewNotes ?? null,
       webhookVerifiedAt: channel.webhookVerifiedAt?.toISOString() ?? null,
       activatedAt: channel.activatedAt?.toISOString() ?? null,
       suspendedAt: channel.suspendedAt?.toISOString() ?? null,
@@ -89,23 +127,23 @@ export class WhatsAppOnboardingService {
         ? WhatsAppChannelStatus.DOCS_PENDING
         : existing.status;
 
-    await repository.save(
-      repository.create({
-        ...existing,
-        tenantId,
-        status: nextStatus,
-        businessLegalName: input.businessLegalName ?? existing.businessLegalName,
-        contactEmail: input.contactEmail ?? existing.contactEmail,
-        contactPhone: input.contactPhone ?? existing.contactPhone,
-        website: input.website ?? existing.website,
-        expectedDailyVolume: input.expectedDailyVolume ?? existing.expectedDailyVolume,
-        reviewNotes: input.reviewNotes ?? existing.reviewNotes,
-        onboardingSlaTargetAt:
-          nextStatus === WhatsAppChannelStatus.DOCS_PENDING
-            ? this.nextSlaTarget()
-            : existing.onboardingSlaTargetAt,
-      }),
-    );
+    const updatedChannel = repository.create({
+      ...existing,
+      tenantId,
+      status: nextStatus,
+      businessLegalName: input.businessLegalName ?? existing.businessLegalName,
+      contactEmail: input.contactEmail ?? existing.contactEmail,
+      contactPhone: input.contactPhone ?? existing.contactPhone,
+      website: input.website ?? existing.website,
+      expectedDailyVolume: input.expectedDailyVolume ?? existing.expectedDailyVolume,
+      reviewNotes: input.reviewNotes ?? existing.reviewNotes,
+      onboardingSlaTargetAt:
+        nextStatus === WhatsAppChannelStatus.DOCS_PENDING
+          ? this.nextSlaTarget()
+          : existing.onboardingSlaTargetAt,
+    });
+    updatedChannel.obaEligible = this.computeObaEligibility(updatedChannel);
+    await repository.save(updatedChannel);
 
     await this.recordAudit({
       tenantId,
@@ -159,6 +197,11 @@ export class WhatsAppOnboardingService {
       phoneNumberId: row.phoneNumberId ?? null,
       phoneNumberE164: row.phoneNumberE164 ?? null,
       businessLegalName: row.businessLegalName ?? null,
+      obaEligible: row.obaEligible ?? false,
+      obaStatus: row.obaStatus ?? WhatsAppObaStatus.NOT_APPLIED,
+      obaAppliedAt: row.obaAppliedAt?.toISOString() ?? null,
+      obaApprovedAt: row.obaApprovedAt?.toISOString() ?? null,
+      obaRejectedAt: row.obaRejectedAt?.toISOString() ?? null,
       webhookVerifiedAt: row.webhookVerifiedAt?.toISOString() ?? null,
       activatedAt: row.activatedAt?.toISOString() ?? null,
       suspendedAt: row.suspendedAt?.toISOString() ?? null,
@@ -279,8 +322,23 @@ export class WhatsAppOnboardingService {
       }
 
       const channel = await this.getOrCreateChannelWithManager(manager, input.tenantId);
+      if (
+        channel.status === WhatsAppChannelStatus.NEW ||
+        channel.status === WhatsAppChannelStatus.DOCS_PENDING
+      ) {
+        throw new BadRequestException(
+          'Cannot assign managed number until onboarding is verified',
+        );
+      }
+      if (channel.status === WhatsAppChannelStatus.SUSPENDED) {
+        throw new BadRequestException(
+          'Cannot assign managed number while channel is suspended',
+        );
+      }
       const nextStatus =
-        input.activateNow || channel.status === WhatsAppChannelStatus.ACTIVE
+        (input.activateNow &&
+          Boolean(channel.webhookVerifiedAt)) ||
+        channel.status === WhatsAppChannelStatus.ACTIVE
           ? WhatsAppChannelStatus.ACTIVE
           : WhatsAppChannelStatus.NUMBER_ASSIGNED;
       const now = new Date();
@@ -295,23 +353,23 @@ export class WhatsAppOnboardingService {
         }),
       );
 
-      await channelRepository.save(
-        channelRepository.create({
-          ...channel,
-          status: nextStatus,
-          phoneNumberId: managedNumber.phoneNumberId,
-          phoneNumberE164: managedNumber.displayPhoneNumber,
-          wabaId: managedNumber.wabaId ?? channel.wabaId ?? null,
-          businessAccountId:
-            managedNumber.businessAccountId ?? channel.businessAccountId ?? null,
-          suspendedAt: null,
-          activatedAt:
-            nextStatus === WhatsAppChannelStatus.ACTIVE
-              ? channel.activatedAt ?? now
-              : channel.activatedAt,
-          reviewNotes: input.reason ?? channel.reviewNotes,
-        }),
-      );
+      const updatedChannel = channelRepository.create({
+        ...channel,
+        status: nextStatus,
+        phoneNumberId: managedNumber.phoneNumberId,
+        phoneNumberE164: managedNumber.displayPhoneNumber,
+        wabaId: managedNumber.wabaId ?? channel.wabaId ?? null,
+        businessAccountId:
+          managedNumber.businessAccountId ?? channel.businessAccountId ?? null,
+        suspendedAt: null,
+        activatedAt:
+          nextStatus === WhatsAppChannelStatus.ACTIVE
+            ? channel.activatedAt ?? now
+            : channel.activatedAt,
+        reviewNotes: input.reason ?? channel.reviewNotes,
+      });
+      updatedChannel.obaEligible = this.computeObaEligibility(updatedChannel);
+      await channelRepository.save(updatedChannel);
 
       await this.recordAuditWithManager(manager, {
         tenantId: input.tenantId,
@@ -325,6 +383,7 @@ export class WhatsAppOnboardingService {
         reason: input.reason || 'Managed number assigned to tenant',
         metadata: {
           activateNow: Boolean(input.activateNow),
+          nextStatus,
           previousTenantId: previousTenantId || null,
         },
       });
@@ -345,8 +404,17 @@ export class WhatsAppOnboardingService {
       const channelRepository = manager.getRepository(WhatsAppChannelOrmEntity);
       const numberRepository = manager.getRepository(WhatsAppManagedNumberOrmEntity);
       const channel = await this.getOrCreateChannelWithManager(manager, input.tenantId);
+      this.assertStatusTransition(channel.status, input.status);
       if (input.status === WhatsAppChannelStatus.ACTIVE && !channel.phoneNumberId) {
         throw new BadRequestException('Cannot activate channel without phone number assignment');
+      }
+      if (
+        input.status === WhatsAppChannelStatus.ACTIVE &&
+        !channel.webhookVerifiedAt
+      ) {
+        throw new BadRequestException(
+          'Cannot activate channel before webhook verification',
+        );
       }
 
       const now = new Date();
@@ -364,6 +432,7 @@ export class WhatsAppOnboardingService {
         suspendedAt:
           input.status === WhatsAppChannelStatus.SUSPENDED ? now : channel.suspendedAt,
       });
+      updated.obaEligible = this.computeObaEligibility(updated);
       await channelRepository.save(updated);
 
       if (channel.phoneNumberId) {
@@ -403,6 +472,67 @@ export class WhatsAppOnboardingService {
     return this.getTenantStatus(input.tenantId);
   }
 
+  async updateObaStatus(
+    input: SetWhatsAppObaStatusDto,
+    operatorId?: string,
+  ): Promise<WhatsAppOnboardingStatusEntity> {
+    if (!input?.tenantId) {
+      throw new BadRequestException('tenantId is required');
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      const channelRepository = manager.getRepository(WhatsAppChannelOrmEntity);
+      const channel = await this.getOrCreateChannelWithManager(manager, input.tenantId);
+      const now = new Date();
+      const eligible = this.computeObaEligibility(channel);
+      if (!eligible && input.obaStatus === WhatsAppObaStatus.PENDING) {
+        throw new BadRequestException(
+          'Tenant is not OBA-eligible yet. Activate and verify channel first.',
+        );
+      }
+
+      const updated = channelRepository.create({
+        ...channel,
+        obaEligible: eligible,
+        obaStatus: input.obaStatus,
+        obaReviewNotes: input.reviewNotes ?? channel.obaReviewNotes,
+        lastReviewAt: now,
+      });
+      if (input.obaStatus === WhatsAppObaStatus.NOT_APPLIED) {
+        updated.obaAppliedAt = null;
+        updated.obaApprovedAt = null;
+        updated.obaRejectedAt = null;
+      } else if (input.obaStatus === WhatsAppObaStatus.PENDING) {
+        updated.obaAppliedAt = channel.obaAppliedAt ?? now;
+        updated.obaApprovedAt = null;
+        updated.obaRejectedAt = null;
+      } else if (input.obaStatus === WhatsAppObaStatus.APPROVED) {
+        updated.obaAppliedAt = channel.obaAppliedAt ?? now;
+        updated.obaApprovedAt = now;
+        updated.obaRejectedAt = null;
+      } else if (input.obaStatus === WhatsAppObaStatus.REJECTED) {
+        updated.obaAppliedAt = channel.obaAppliedAt ?? now;
+        updated.obaApprovedAt = null;
+        updated.obaRejectedAt = now;
+      }
+      await channelRepository.save(updated);
+
+      await this.recordAuditWithManager(manager, {
+        tenantId: input.tenantId,
+        phoneNumberId: channel.phoneNumberId,
+        action: WhatsAppAssignmentAuditAction.STATUS_UPDATED,
+        operatorId,
+        reason: input.reason || `OBA status updated to ${input.obaStatus}`,
+        metadata: {
+          obaStatus: input.obaStatus,
+          eligible,
+        },
+      });
+    });
+
+    return this.getTenantStatus(input.tenantId);
+  }
+
   async markWebhookVerified(phoneNumberId?: string) {
     if (!phoneNumberId) {
       return;
@@ -417,17 +547,30 @@ export class WhatsAppOnboardingService {
       channel.status === WhatsAppChannelStatus.NUMBER_ASSIGNED
         ? WhatsAppChannelStatus.ACTIVE
         : channel.status;
-    await repository.save(
-      repository.create({
-        ...channel,
-        status: nextStatus,
-        webhookVerifiedAt: now,
-        activatedAt:
-          nextStatus === WhatsAppChannelStatus.ACTIVE
-            ? channel.activatedAt ?? now
-            : channel.activatedAt,
-      }),
-    );
+    const updatedChannel = repository.create({
+      ...channel,
+      status: nextStatus,
+      webhookVerifiedAt: now,
+      activatedAt:
+        nextStatus === WhatsAppChannelStatus.ACTIVE
+          ? channel.activatedAt ?? now
+          : channel.activatedAt,
+    });
+    updatedChannel.obaEligible = this.computeObaEligibility(updatedChannel);
+    await repository.save(updatedChannel);
+    await this.recordAudit({
+      tenantId: channel.tenantId,
+      phoneNumberId,
+      action: WhatsAppAssignmentAuditAction.STATUS_UPDATED,
+      reason:
+        nextStatus === WhatsAppChannelStatus.ACTIVE
+          ? 'Webhook verified and channel auto-activated'
+          : 'Webhook verified for assigned channel',
+      metadata: {
+        previousStatus: channel.status,
+        nextStatus,
+      },
+    });
   }
 
   async resolveTenantByPhoneNumberId(phoneNumberId?: string): Promise<string | undefined> {
@@ -493,6 +636,18 @@ export class WhatsAppOnboardingService {
     }
     if (!channel.webhookVerifiedAt) {
       return { ready: false, reason: 'webhook_not_verified' };
+    }
+    const managed = await this.dataSource
+      .getRepository(WhatsAppManagedNumberOrmEntity)
+      .findOne({
+        where: { phoneNumberId: channel.phoneNumberId },
+      });
+    if (
+      managed &&
+      (managed.status !== WhatsAppManagedNumberStatus.ASSIGNED ||
+        managed.assignedTenantId !== tenantId)
+    ) {
+      return { ready: false, reason: 'managed_number_not_ready' };
     }
     return { ready: true, reason: 'ok', phoneNumberId: channel.phoneNumberId };
   }
@@ -610,13 +765,51 @@ export class WhatsAppOnboardingService {
         done: channel.status === WhatsAppChannelStatus.ACTIVE,
         blocker: 'Channel is not active for outbound messaging',
       },
+      {
+        key: 'oba_eligibility',
+        label: 'Green tick eligibility assessed',
+        done: Boolean(channel.obaEligible),
+      },
+      {
+        key: 'oba_status',
+        label: 'Green tick (OBA) status tracked',
+        done: channel.obaStatus === WhatsAppObaStatus.APPROVED,
+      },
     ];
+  }
+
+  private computeObaEligibility(channel: WhatsAppChannelOrmEntity) {
+    const raw = Number(process.env.WHATSAPP_OBA_MIN_DAILY_VOLUME || 1000);
+    const minDailyVolume = Number.isFinite(raw) ? Math.max(1, raw) : 1000;
+    return Boolean(
+      channel.status === WhatsAppChannelStatus.ACTIVE &&
+        channel.phoneNumberId &&
+        channel.webhookVerifiedAt &&
+        channel.businessLegalName &&
+        channel.contactEmail &&
+        (channel.expectedDailyVolume || 0) >= minDailyVolume,
+    );
   }
 
   private nextSlaTarget() {
     const raw = Number(process.env.WHATSAPP_ONBOARDING_REVIEW_SLA_HOURS || 48);
     const boundedHours = Number.isFinite(raw) ? Math.min(Math.max(raw, 1), 24 * 14) : 48;
     return new Date(Date.now() + boundedHours * 60 * 60 * 1000);
+  }
+
+  private assertStatusTransition(
+    currentStatus: WhatsAppChannelStatus,
+    nextStatus: WhatsAppChannelStatus,
+  ) {
+    if (currentStatus === nextStatus) {
+      return;
+    }
+    const allowed = this.allowedTransitions[currentStatus] || [];
+    if (!allowed.includes(nextStatus)) {
+      throw new BadRequestException(
+        `Invalid channel status transition ${currentStatus} -> ${nextStatus}`,
+      );
+    }
   }
 
   private async recordAudit(
