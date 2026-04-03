@@ -12,6 +12,9 @@ export async function seedRbacDefaults(dataSource: DataSource, tenantId: string)
     { resource: 'campaign', action: 'publish' },
     { resource: 'campaign', action: 'read' },
     { resource: 'tenant', action: 'manage' },
+    { resource: 'operator', action: 'manage' },
+    { resource: 'integrations', action: 'manage' },
+    { resource: 'onboarding', action: 'manage' },
   ];
 
   const permissions: PermissionEntity[] = [];

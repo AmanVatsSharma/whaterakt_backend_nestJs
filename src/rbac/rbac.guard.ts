@@ -21,12 +21,16 @@ export class RbacGuard implements CanActivate {
       return true;
     }
 
-    const gqlCtx = GqlExecutionContext.create(context);
-    const req = gqlCtx.getContext()?.req || context.switchToHttp().getRequest();
-    const gqlArgs = gqlCtx.getArgs?.() || {};
+    const contextType = context.getType<'http' | 'graphql'>();
+    const gqlCtx =
+      contextType === 'graphql' ? GqlExecutionContext.create(context) : null;
+    const req =
+      gqlCtx?.getContext?.()?.req || context.switchToHttp().getRequest();
+    const gqlArgs = gqlCtx?.getArgs?.() || {};
     const user = req?.user;
+    const userId = user?.sub || user?.userId || user?.id;
 
-    if (!user?.sub) {
+    if (!userId) {
       throw new UnauthorizedException('Missing authenticated user for RBAC guard');
     }
 
@@ -44,7 +48,7 @@ export class RbacGuard implements CanActivate {
 
     for (const permission of requirements) {
       const hasAccess = await this.rbacService.hasAccess(
-        user.sub,
+        userId,
         permission.resource,
         permission.action,
         {
@@ -54,12 +58,12 @@ export class RbacGuard implements CanActivate {
         },
       );
       if (!hasAccess) {
-        this.logger.warn(`RBAC denial user=${user.sub} resource=${permission.resource} action=${permission.action}`);
+        this.logger.warn(`RBAC denial user=${userId} resource=${permission.resource} action=${permission.action}`);
         throw new UnauthorizedException('Insufficient permissions');
       }
     }
 
-    this.logger.debug(`RBAC granted for user ${user.sub}`);
+    this.logger.debug(`RBAC granted for user ${userId}`);
     return true;
   }
 }
