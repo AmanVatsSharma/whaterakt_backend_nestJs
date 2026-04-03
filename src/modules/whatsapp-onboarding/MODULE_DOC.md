@@ -12,6 +12,7 @@
 - dtos/create-whatsapp-managed-number.dto.ts
 - dtos/assign-whatsapp-number.dto.ts
 - dtos/set-whatsapp-channel-status.dto.ts
+- dtos/set-whatsapp-oba-status.dto.ts
 - entities/whatsapp-onboarding-status.entity.ts
 - tests/whatsapp-onboarding.service.spec.ts
 - MODULE_DOC.md
@@ -29,6 +30,7 @@
   - `POST /whatsapp-onboarding/operator/numbers`
   - `POST /whatsapp-onboarding/operator/assign`
   - `POST /whatsapp-onboarding/operator/channel-status`
+  - `POST /whatsapp-onboarding/operator/oba-status`
   - `GET /whatsapp-onboarding/operator/channels`
   - `GET /whatsapp-onboarding/operator/funnel`
 - GraphQL: none
@@ -42,3 +44,4 @@
 **Change-log:**
 - 2026-02-15: Added managed onboarding module with tenant status and operator inventory/assignment APIs.
 - 2026-02-15: Introduced DB-backed mapping for tenant to `phone_number_id` resolution and webhook verification state.
+- 2026-02-16: Added OBA (green tick) readiness fields, operator status API, and onboarding checklist/status payload coverage.

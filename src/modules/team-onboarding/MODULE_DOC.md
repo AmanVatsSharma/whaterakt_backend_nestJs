@@ -36,4 +36,5 @@
 **Change-log:** (auto-updated by Aman Sharma / Vedpragyaon edits)
 - 2026-02-15: Added team onboarding module with team + invite lifecycle APIs.
 - 2026-02-15: Migrated persistence layer to TypeORM repositories and removed legacy ORM references.
+- 2026-02-16: Added REST auth and tenant-binding guards to team create/invite/member endpoints.
 

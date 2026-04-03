@@ -9,8 +9,10 @@
  * - Read inviteMember and acceptInvite for the onboarding flow.
  */
 
-import { Body, Controller, Get, Headers, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
+import { RestAuthGuard } from '../../../core/guards/rest-auth.guard';
+import { RestTenantGuard } from '../../../core/guards/rest-tenant.guard';
 import { AcceptTeamInviteDto } from '../dtos/accept-team-invite.dto';
 import { CreateTeamDto } from '../dtos/create-team.dto';
 import { InviteTeamMemberDto } from '../dtos/invite-team-member.dto';
@@ -26,6 +28,7 @@ export class TeamOnboardingController {
   constructor(private readonly teamOnboardingService: TeamOnboardingService) {}
 
   @Post('team')
+  @UseGuards(RestAuthGuard, RestTenantGuard)
   async createTeam(
     @Body() body: CreateTeamDto,
     @Req() request: RequestWithContext,
@@ -36,6 +39,7 @@ export class TeamOnboardingController {
   }
 
   @Post('invites')
+  @UseGuards(RestAuthGuard, RestTenantGuard)
   async inviteMember(
     @Body() body: InviteTeamMemberDto,
     @Req() request: RequestWithContext,
@@ -52,6 +56,7 @@ export class TeamOnboardingController {
   }
 
   @Get('members')
+  @UseGuards(RestAuthGuard, RestTenantGuard)
   async listMembers(
     @Req() request: RequestWithContext,
     @Headers('x-tenant-id') tenantHeader?: string,
