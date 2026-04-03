@@ -17,10 +17,16 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
+import { RestAuthGuard } from '../../../core/guards/rest-auth.guard';
+import { RestTenantGuard } from '../../../core/guards/rest-tenant.guard';
+import { RequirePermissions } from '../../../rbac/rbac.decorator';
+import { RbacGuard } from '../../../rbac/rbac.guard';
 import { AssignWhatsAppNumberDto } from '../dtos/assign-whatsapp-number.dto';
 import { CreateWhatsAppManagedNumberDto } from '../dtos/create-whatsapp-managed-number.dto';
+import { SetWhatsAppObaStatusDto } from '../dtos/set-whatsapp-oba-status.dto';
 import { SetWhatsAppChannelStatusDto } from '../dtos/set-whatsapp-channel-status.dto';
 import { UpsertWhatsAppOnboardingDto } from '../dtos/upsert-whatsapp-onboarding.dto';
 import { WhatsAppOnboardingService } from '../services/whatsapp-onboarding.service';
@@ -30,6 +36,7 @@ type RequestWithTenant = Request & {
 };
 
 @Controller('whatsapp-onboarding')
+@UseGuards(RestAuthGuard, RestTenantGuard)
 export class WhatsAppOnboardingController {
   constructor(
     private readonly onboardingService: WhatsAppOnboardingService,
@@ -55,11 +62,15 @@ export class WhatsAppOnboardingController {
   }
 
   @Get('operator/numbers')
+  @UseGuards(RbacGuard)
+  @RequirePermissions({ resource: 'operator', action: 'manage' })
   async listManagedNumbers(@Query('status') status?: string) {
     return this.onboardingService.listManagedNumbers(status);
   }
 
   @Post('operator/numbers')
+  @UseGuards(RbacGuard)
+  @RequirePermissions({ resource: 'operator', action: 'manage' })
   async upsertManagedNumber(
     @Body() body: CreateWhatsAppManagedNumberDto,
     @Headers('x-operator-id') operatorId?: string,
@@ -68,6 +79,8 @@ export class WhatsAppOnboardingController {
   }
 
   @Post('operator/assign')
+  @UseGuards(RbacGuard)
+  @RequirePermissions({ resource: 'operator', action: 'manage' })
   async assignManagedNumber(
     @Body() body: AssignWhatsAppNumberDto,
     @Headers('x-operator-id') operatorId?: string,
@@ -76,6 +89,8 @@ export class WhatsAppOnboardingController {
   }
 
   @Post('operator/channel-status')
+  @UseGuards(RbacGuard)
+  @RequirePermissions({ resource: 'operator', action: 'manage' })
   async setChannelStatus(
     @Body() body: SetWhatsAppChannelStatusDto,
     @Headers('x-operator-id') operatorId?: string,
@@ -83,12 +98,26 @@ export class WhatsAppOnboardingController {
     return this.onboardingService.updateChannelStatus(body, operatorId);
   }
 
+  @Post('operator/oba-status')
+  @UseGuards(RbacGuard)
+  @RequirePermissions({ resource: 'operator', action: 'manage' })
+  async setObaStatus(
+    @Body() body: SetWhatsAppObaStatusDto,
+    @Headers('x-operator-id') operatorId?: string,
+  ) {
+    return this.onboardingService.updateObaStatus(body, operatorId);
+  }
+
   @Get('operator/channels')
+  @UseGuards(RbacGuard)
+  @RequirePermissions({ resource: 'operator', action: 'manage' })
   async listChannels(@Query('status') status?: string) {
     return this.onboardingService.listChannels(status);
   }
 
   @Get('operator/funnel')
+  @UseGuards(RbacGuard)
+  @RequirePermissions({ resource: 'operator', action: 'manage' })
   async getFunnel(
     @Req() request: RequestWithTenant,
     @Headers('x-tenant-id') tenantHeader?: string,

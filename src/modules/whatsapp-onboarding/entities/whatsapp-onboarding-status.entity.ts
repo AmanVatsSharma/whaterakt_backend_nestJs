@@ -27,6 +27,12 @@ export class WhatsAppOnboardingStatusEntity {
   phoneNumberId?: string | null;
   phoneNumberE164?: string | null;
   wabaId?: string | null;
+  obaEligible?: boolean;
+  obaStatus?: string;
+  obaAppliedAt?: string | null;
+  obaApprovedAt?: string | null;
+  obaRejectedAt?: string | null;
+  obaReviewNotes?: string | null;
   webhookVerifiedAt?: string | null;
   activatedAt?: string | null;
   suspendedAt?: string | null;
