@@ -11,6 +11,7 @@
 import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Campaign } from './entities/campaign.entity';
 import { CreateCampaignInput } from './dto/create-campaign.input';
+import { UpdateCampaignInput } from './dto/update-campaign.input';
 import { UseGuards } from '@nestjs/common';
 import { TenantGuard } from '../core/guards/tenant.guard';
 import { GqlAuthGuard } from '../core/guards/gql-auth.guard';
@@ -39,6 +40,34 @@ export class CampaignResolver {
       input,
       context.tenant.id,
       fallbackUserId,
+    );
+  }
+
+  @Mutation(() => Campaign)
+  async updateCampaign(
+    @Args('campaignId') campaignId: string,
+    @Args('input') input: UpdateCampaignInput,
+    @Context() context: { tenant: Tenant },
+  ) {
+    return this.campaignService.updateCampaign(
+      context.tenant.id,
+      campaignId,
+      input,
+    );
+  }
+
+  @Mutation(() => Campaign)
+  async duplicateCampaign(
+    @Args('campaignId') campaignId: string,
+    @Args('newName', { nullable: true }) newName: string | null,
+    @Context() context: { tenant: Tenant; req?: { user?: { userId?: string } } },
+  ) {
+    const fallbackUserId = context?.req?.user?.userId;
+    return this.campaignService.duplicateCampaign(
+      context.tenant.id,
+      campaignId,
+      fallbackUserId,
+      newName || undefined,
     );
   }
 

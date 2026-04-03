@@ -14,8 +14,9 @@ import { CampaignStatus } from './enums/campaign-status.enum';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
-import { CampaignOrmEntity } from '../database/entities';
+import { DataSource, In, Repository } from 'typeorm';
+import { CampaignOrmEntity, ContactOrmEntity } from '../database/entities';
+import { UpdateCampaignInput } from './dto/update-campaign.input';
 
 @Injectable()
 export class CampaignService {
@@ -29,13 +30,23 @@ export class CampaignService {
     if (!userId) {
       throw new BadRequestException('userId is required');
     }
+    this.assertPayloadIntegrity(input.messageBody, input.templateName);
     const campaignRepository = this.dataSource.getRepository(CampaignOrmEntity);
+    const audienceContactIds = await this.normalizeAudienceContactIds(
+      tenantId,
+      input.audienceContactIds,
+    );
     const initialStatus = input.scheduledAt
       ? CampaignStatus.SCHEDULED
       : CampaignStatus.DRAFT;
     const campaign = await campaignRepository.save(
       campaignRepository.create({
-        ...input,
+        name: input.name,
+        type: input.type,
+        scheduledAt: input.scheduledAt,
+        messageBody: input.messageBody || null,
+        templateName: input.templateName || null,
+        audienceContactIds,
         userId,
         status: initialStatus,
         tenantId,
@@ -47,6 +58,76 @@ export class CampaignService {
     }
 
     return campaign;
+  }
+
+  async updateCampaign(
+    tenantId: string,
+    campaignId: string,
+    input: UpdateCampaignInput,
+  ) {
+    const repository = this.dataSource.getRepository(CampaignOrmEntity);
+    const campaign = await this.getCampaignOrThrow(repository, tenantId, campaignId);
+    const finalMessageBody =
+      input.messageBody !== undefined ? input.messageBody : campaign.messageBody || undefined;
+    const finalTemplateName =
+      input.templateName !== undefined ? input.templateName : campaign.templateName || undefined;
+    this.assertPayloadIntegrity(finalMessageBody, finalTemplateName);
+    const audienceContactIds = await this.normalizeAudienceContactIds(
+      tenantId,
+      input.audienceContactIds,
+    );
+
+    if (input.name !== undefined) {
+      campaign.name = input.name;
+    }
+    if (input.type !== undefined) {
+      campaign.type = input.type;
+    }
+    if (input.scheduledAt !== undefined) {
+      campaign.scheduledAt = input.scheduledAt ?? null;
+    }
+    if (input.messageBody !== undefined) {
+      campaign.messageBody = input.messageBody || null;
+    }
+    if (input.templateName !== undefined) {
+      campaign.templateName = input.templateName || null;
+    }
+    if (input.audienceContactIds !== undefined) {
+      campaign.audienceContactIds = audienceContactIds;
+    }
+
+    if (campaign.status === CampaignStatus.SENT && campaign.scheduledAt) {
+      campaign.status = CampaignStatus.SCHEDULED;
+    }
+
+    return repository.save(campaign);
+  }
+
+  async duplicateCampaign(
+    tenantId: string,
+    campaignId: string,
+    fallbackUserId?: string,
+    newName?: string,
+  ) {
+    const repository = this.dataSource.getRepository(CampaignOrmEntity);
+    const source = await this.getCampaignOrThrow(repository, tenantId, campaignId);
+    const userId = source.userId || fallbackUserId;
+    if (!userId) {
+      throw new BadRequestException('Unable to resolve campaign owner for duplicate');
+    }
+
+    const duplicate = repository.create({
+      name: newName?.trim() || `${source.name} Copy`,
+      type: source.type,
+      status: CampaignStatus.DRAFT,
+      scheduledAt: null,
+      messageBody: source.messageBody ?? null,
+      templateName: source.templateName ?? null,
+      audienceContactIds: source.audienceContactIds || [],
+      userId,
+      tenantId,
+    });
+    return repository.save(duplicate);
   }
 
   async findAll(tenantId: string) {
@@ -69,7 +150,11 @@ export class CampaignService {
     if (status === CampaignStatus.SCHEDULED) {
       campaign.scheduledAt = options?.scheduledAt ?? campaign.scheduledAt ?? new Date();
     }
-    if (status === CampaignStatus.DRAFT || status === CampaignStatus.FAILED) {
+    if (
+      status === CampaignStatus.DRAFT ||
+      status === CampaignStatus.FAILED ||
+      status === CampaignStatus.PAUSED
+    ) {
       campaign.scheduledAt = options?.scheduledAt ?? campaign.scheduledAt ?? null;
     }
     const saved = await repository.save(campaign);
@@ -121,5 +206,46 @@ export class CampaignService {
       throw new NotFoundException('Campaign not found for tenant');
     }
     return campaign;
+  }
+
+  private async normalizeAudienceContactIds(
+    tenantId: string,
+    audienceContactIds?: string[],
+  ) {
+    if (!audienceContactIds) {
+      return [];
+    }
+    const uniqueIds = Array.from(
+      new Set(
+        audienceContactIds
+          .map((value) => String(value || '').trim())
+          .filter(Boolean),
+      ),
+    );
+    if (!uniqueIds.length) {
+      return [];
+    }
+    const matchedCount = await this.dataSource
+      .getRepository(ContactOrmEntity)
+      .count({
+        where: {
+          tenantId,
+          id: In(uniqueIds),
+        },
+      });
+    if (matchedCount !== uniqueIds.length) {
+      throw new BadRequestException(
+        'One or more audience contact ids are invalid for tenant',
+      );
+    }
+    return uniqueIds;
+  }
+
+  private assertPayloadIntegrity(messageBody?: string, templateName?: string) {
+    if (!String(messageBody || '').trim() && !String(templateName || '').trim()) {
+      throw new BadRequestException(
+        'Either messageBody or templateName is required for campaign dispatch',
+      );
+    }
   }
 }
