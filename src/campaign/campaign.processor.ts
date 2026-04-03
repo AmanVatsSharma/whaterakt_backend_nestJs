@@ -12,8 +12,12 @@ import { InjectQueue, Process, Processor } from '@nestjs/bull';
 import { Job, Queue } from 'bull';
 import { Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
-import { ContactOrmEntity } from '../database/entities';
+import { DataSource, In } from 'typeorm';
+import {
+  CampaignOrmEntity,
+  ContactOrmEntity,
+} from '../database/entities';
+import { CampaignStatus } from './enums/campaign-status.enum';
 
 @Processor('campaigns')
 export class CampaignProcessor {
@@ -25,11 +29,35 @@ export class CampaignProcessor {
   ) {}
 
   @Process('dispatch')
-  async handleDispatch(job: Job<{ tenantId: string; campaignId: string; messageTemplate?: any }>) {
-    const { tenantId, campaignId, messageTemplate } = job.data;
+  async handleDispatch(job: Job<{ tenantId: string; campaignId: string }>) {
+    const { tenantId, campaignId } = job.data;
+    const campaignRepository = this.dataSource.getRepository(CampaignOrmEntity);
+    const campaign = await campaignRepository.findOne({
+      where: { id: campaignId, tenantId },
+    });
+    if (!campaign) {
+      this.logger.warn(
+        `Skipping dispatch for missing campaign tenant=${tenantId} campaign=${campaignId}`,
+      );
+      return { success: false, count: 0, reason: 'campaign_not_found' };
+    }
+    if (campaign.status === CampaignStatus.PAUSED) {
+      this.logger.log(`Skipping paused campaign dispatch ${campaignId}`);
+      return { success: true, count: 0, reason: 'campaign_paused' };
+    }
 
+    const contactWhere = campaign.audienceContactIds?.length
+      ? {
+          tenantId,
+          subscribed: true,
+          id: In(campaign.audienceContactIds),
+        }
+      : {
+          tenantId,
+          subscribed: true,
+        };
     const contacts = await this.dataSource.getRepository(ContactOrmEntity).find({
-      where: { tenantId, subscribed: true },
+      where: contactWhere,
     });
     const perTenantRate = Number(process.env.CAMPAIGN_RATE_PER_MIN || 600); // messages/minute
     const batchSize = Math.max(1, Math.min(100, Math.floor(perTenantRate / 6))); // ~10s windows
@@ -40,13 +68,15 @@ export class CampaignProcessor {
       for (const contact of batch) {
         const payload: any = {
           to: contact.phone,
-          // default to text if no template provided
-          type: messageTemplate ? 'template' : 'text',
+          type: campaign.templateName ? 'template' : 'text',
         };
-        if (messageTemplate) {
-          payload.template = messageTemplate;
+        if (campaign.templateName) {
+          payload.template = {
+            name: campaign.templateName,
+            language: { code: 'en_US' },
+          };
         } else {
-          payload.text = { body: `Campaign ${campaignId}` };
+          payload.text = { body: campaign.messageBody || `Campaign ${campaignId}` };
         }
         // attach campaignId for downstream persistence
         payload.campaignId = campaignId;
@@ -55,6 +85,9 @@ export class CampaignProcessor {
       // Spread batches across time to respect per-tenant rate
       if (i < batches.length - 1) await new Promise((r) => setTimeout(r, 10_000));
     }
+
+    campaign.status = CampaignStatus.SENT;
+    await campaignRepository.save(campaign);
 
     this.logger.log(`Dispatched campaign ${campaignId} for tenant ${tenantId} to ${contacts.length} contacts`);
     return { success: true, count: contacts.length };

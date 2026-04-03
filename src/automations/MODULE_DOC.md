@@ -1,8 +1,8 @@
 # Module: automations
 
-**Short:** Keyword-triggered and scheduled automation handlers.
+**Short:** Conditional automation workflows with execution logging.
 
-**Purpose:** Execute automation definitions for inbound events and future drip workflows.
+**Purpose:** Execute automation definitions for inbound events and drip workflows with condition checks, multi-step dispatch, and execution traceability.
 
 **Files:**
 - automations.module.ts
@@ -14,13 +14,17 @@
 **Dependencies:** TypeORM DataSource, Bull `messages` queue, webhook ingestion, Redis (optional dedupe).
 
 **APIs:**
-- GraphQL query: `automations`
+- GraphQL query: `automations`, `automationExecutionLogs`
+- GraphQL mutations: `createAutomation`, `updateAutomation`, `setAutomationEnabled`, `deleteAutomation`
 
 **Env vars:** `FEATURE_AUTOMATIONS_ENABLED`
 
 **Tests:** automation keyword matching unit tests.
 
 **Change-log:**
+- 2026-02-16: Added `AutomationExecutionLog` persistence model and API query for workflow observability.
+- 2026-02-16: Added condition evaluation and multi-step workflow execution support for keyword and Shopify automations.
+- 2026-02-16: Added delayed queue scheduling support for automation steps and execution audit logging for queued/skipped/failed paths.
 - 2026-02-15: Added module docs.
 - 2026-02-15: Switched automation lookup reads to TypeORM.
 - 2026-02-15: Added automation listing query to support frontend data adapters.
