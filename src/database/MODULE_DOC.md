@@ -32,4 +32,6 @@
 - 2026-02-15: Added entity coverage baseline migration (`202602150003`) and extended migration check script to verify every DB entity token is referenced by migrations.
 - 2026-02-15: Added managed WhatsApp onboarding entities (`WhatsAppChannel`, `WhatsAppManagedNumber`, `WhatsAppAssignmentAudit`) and migration `202602150004`.
 - 2026-02-16: Added OBA/green-tick tracking fields on `WhatsAppChannel` with migration `202602160005`.
+- 2026-02-16: Added campaign composition and targeting migration `202602160006` (`messageBody`, `templateName`, `audienceContactIds`, and `Campaign_status_enum.PAUSED`).
+- 2026-02-16: Added `AutomationExecutionLog` table and indexes with migration `202602160007` for workflow observability.
 
