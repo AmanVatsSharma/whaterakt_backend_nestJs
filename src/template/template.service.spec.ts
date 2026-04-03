@@ -11,6 +11,7 @@ describe('TemplateService', () => {
     create: jest.fn((payload) => payload),
     save: jest.fn(async (payload) => payload),
     find: jest.fn(async () => []),
+    delete: jest.fn(async () => ({ affected: 0 })),
   };
 
   beforeEach(async () => {
@@ -52,5 +53,25 @@ describe('TemplateService', () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('tpl-1');
     expect(result[0].name).toBe('Welcome');
+  });
+
+  it('creates template with normalized category/status values', async () => {
+    const result = await service.createTemplate('tenant-1', 'user-1', {
+      name: '  Promo Banner  ',
+      content: '  Hello user  ',
+      category: 'utility',
+      status: 'approved',
+    });
+
+    expect(result.name).toBe('Promo Banner');
+    expect(result.content).toBe('Hello user');
+    expect(result.category).toBe('UTILITY');
+    expect(result.status).toBe('APPROVED');
+  });
+
+  it('deletes template for tenant scope', async () => {
+    repository.delete.mockResolvedValueOnce({ affected: 1 });
+    const deleted = await service.deleteTemplate('tenant-1', 'tpl-1');
+    expect(deleted).toBe(true);
   });
 });

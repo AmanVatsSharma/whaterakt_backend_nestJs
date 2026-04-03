@@ -8,13 +8,28 @@
 * - Uses TypeORM repository upsert semantics via find/save.
 * - Stores full provider payload in content for troubleshooting.
 */
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { InjectDataSource } from '@nestjs/typeorm';
+import { randomUUID } from 'crypto';
 import { firstValueFrom } from 'rxjs';
 import { DataSource } from 'typeorm';
 import { TemplateCategory, TemplateOrmEntity, TemplateStatus } from '../database/entities/template.entity';
+
+type CreateTemplatePayload = {
+  name: string;
+  content: string;
+  category?: string;
+  status?: string;
+};
+
+type UpdateTemplatePayload = {
+  name?: string;
+  content?: string;
+  category?: string;
+  status?: string;
+};
 
 @Injectable()
 export class TemplateService {
@@ -69,13 +84,121 @@ export class TemplateService {
       take: 200,
     });
 
-    return templates.map((template) => ({
+    return templates.map((template) => this.toTemplateView(template));
+  }
+
+  async createTemplate(
+    tenantId: string,
+    userId: string | null,
+    payload: CreateTemplatePayload,
+  ) {
+    if (!tenantId) {
+      throw new BadRequestException('tenantId is required');
+    }
+    const name = String(payload?.name || '').trim();
+    const content = String(payload?.content || '').trim();
+    if (!name || !content) {
+      throw new BadRequestException('Template name and content are required');
+    }
+
+    const repository = this.dataSource.getRepository(TemplateOrmEntity);
+    const template = repository.create({
+      id: `tpl_${randomUUID()}`,
+      tenantId,
+      userId: userId || null,
+      name,
+      content,
+      category: this.parseCategory(payload.category),
+      status: this.parseStatus(payload.status),
+    });
+    const saved = await repository.save(template);
+    return this.toTemplateView(saved);
+  }
+
+  async updateTemplate(
+    tenantId: string,
+    templateId: string,
+    payload: UpdateTemplatePayload,
+  ) {
+    const repository = this.dataSource.getRepository(TemplateOrmEntity);
+    const existing = await repository.findOne({
+      where: { id: templateId, tenantId },
+    });
+    if (!existing) {
+      throw new NotFoundException('Template not found');
+    }
+
+    const nextName = payload.name === undefined ? existing.name : payload.name.trim();
+    const nextContent =
+      payload.content === undefined ? existing.content : payload.content.trim();
+    if (!nextName || !nextContent) {
+      throw new BadRequestException('Template name and content cannot be empty');
+    }
+
+    const updated = repository.create({
+      ...existing,
+      name: nextName,
+      content: nextContent,
+      category:
+        payload.category === undefined
+          ? existing.category
+          : this.parseCategory(payload.category),
+      status:
+        payload.status === undefined ? existing.status : this.parseStatus(payload.status),
+    });
+    const saved = await repository.save(updated);
+    return this.toTemplateView(saved);
+  }
+
+  async setTemplateStatus(
+    tenantId: string,
+    templateId: string,
+    status: string,
+  ) {
+    const repository = this.dataSource.getRepository(TemplateOrmEntity);
+    const existing = await repository.findOne({
+      where: { id: templateId, tenantId },
+    });
+    if (!existing) {
+      throw new NotFoundException('Template not found');
+    }
+    existing.status = this.parseStatus(status);
+    const saved = await repository.save(existing);
+    return this.toTemplateView(saved);
+  }
+
+  async deleteTemplate(tenantId: string, templateId: string) {
+    const repository = this.dataSource.getRepository(TemplateOrmEntity);
+    const result = await repository.delete({ id: templateId, tenantId });
+    return Number(result.affected || 0) > 0;
+  }
+
+  private parseStatus(status?: string) {
+    const normalized = String(status || TemplateStatus.PENDING).toUpperCase();
+    const values = Object.values(TemplateStatus);
+    if (!values.includes(normalized as TemplateStatus)) {
+      throw new BadRequestException(`Unsupported template status: ${status}`);
+    }
+    return normalized as TemplateStatus;
+  }
+
+  private parseCategory(category?: string) {
+    const normalized = String(category || TemplateCategory.MARKETING).toUpperCase();
+    const values = Object.values(TemplateCategory);
+    if (!values.includes(normalized as TemplateCategory)) {
+      throw new BadRequestException(`Unsupported template category: ${category}`);
+    }
+    return normalized as TemplateCategory;
+  }
+
+  private toTemplateView(template: TemplateOrmEntity) {
+    return {
       id: template.id,
       name: template.name,
       content: template.content,
       category: template.category,
       status: template.status,
       createdAt: template.createdAt?.toISOString?.() || null,
-    }));
+    };
   }
 }
