@@ -10,7 +10,7 @@
 */
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { Brackets, DataSource } from 'typeorm';
 import {
   ConversationNoteOrmEntity,
   ConversationOrmEntity,
@@ -31,30 +31,106 @@ export class ConversationService {
     private readonly whatsappService: WhatsAppService,
   ) {}
 
-  async listConversations(tenantId: string) {
-    const conversations = await this.dataSource.getRepository(ConversationOrmEntity).find({
-      where: { tenantId },
-      order: { updatedAt: 'DESC' },
-      take: 200,
-      relations: { tags: { tag: true } },
-    });
+  async listConversations(
+    tenantId: string,
+    filters?: {
+      search?: string;
+      status?: ConversationStatus;
+      assignedUserId?: string;
+      tag?: string;
+    },
+  ) {
+    const conversationRepository = this.dataSource.getRepository(ConversationOrmEntity);
+    const query = conversationRepository
+      .createQueryBuilder('conversation')
+      .leftJoinAndSelect('conversation.tags', 'conversationTag')
+      .leftJoinAndSelect('conversationTag.tag', 'tag')
+      .leftJoinAndSelect('conversation.contact', 'contact')
+      .leftJoinAndSelect('conversation.assignedUser', 'assignedUser')
+      .where('conversation.tenantId = :tenantId', { tenantId })
+      .orderBy('conversation.updatedAt', 'DESC')
+      .take(200)
+      .distinct(true);
+
+    const normalizedStatus = String(filters?.status || '').toUpperCase();
+    if (
+      normalizedStatus === ConversationStatus.OPEN ||
+      normalizedStatus === ConversationStatus.PENDING ||
+      normalizedStatus === ConversationStatus.CLOSED
+    ) {
+      query.andWhere('conversation.status = :status', {
+        status: normalizedStatus,
+      });
+    }
+
+    const normalizedAssignedUserId = String(filters?.assignedUserId || '').trim();
+    if (normalizedAssignedUserId) {
+      if (normalizedAssignedUserId.toUpperCase() === 'UNASSIGNED') {
+        query.andWhere('conversation.assignedUserId IS NULL');
+      } else {
+        query.andWhere('conversation.assignedUserId = :assignedUserId', {
+          assignedUserId: normalizedAssignedUserId,
+        });
+      }
+    }
+
+    const normalizedTag = String(filters?.tag || '').trim();
+    if (normalizedTag) {
+      query.andWhere('LOWER(tag.name) = LOWER(:tag)', {
+        tag: normalizedTag,
+      });
+    }
+
+    const normalizedSearch = String(filters?.search || '').trim().toLowerCase();
+    if (normalizedSearch) {
+      const likeSearch = `%${normalizedSearch}%`;
+      query.andWhere(
+        new Brackets((searchQuery) => {
+          searchQuery
+            .where('LOWER(COALESCE(contact.phone, \'\')) LIKE :search', {
+              search: likeSearch,
+            })
+            .orWhere('LOWER(COALESCE(contact.firstName, \'\')) LIKE :search', {
+              search: likeSearch,
+            })
+            .orWhere('LOWER(COALESCE(contact.lastName, \'\')) LIKE :search', {
+              search: likeSearch,
+            })
+            .orWhere('LOWER(COALESCE(tag.name, \'\')) LIKE :search', {
+              search: likeSearch,
+            });
+        }),
+      );
+    }
+
+    const conversations = await query.getMany();
 
     return conversations.map((item) => ({
       id: item.id,
       contactId: item.contactId,
+      contactPhone: item.contact?.phone || null,
+      contactName: [item.contact?.firstName || '', item.contact?.lastName || '']
+        .join(' ')
+        .trim() || null,
       status: item.status,
       assignedUserId: item.assignedUserId,
+      assignedUserEmail: item.assignedUser?.email || null,
       lastMessage: item.lastMessage ? `Last activity at ${item.lastMessage.toISOString()}` : null,
       lastMessageAt: item.lastMessage ? item.lastMessage.toISOString() : null,
-      tags: item.tags?.map((tagRef) => tagRef.tag.name) ?? [],
+      tags: Array.from(new Set(item.tags?.map((tagRef) => tagRef.tag.name) ?? [])),
     }));
   }
 
-  async assign(tenantId: string, conversationId: string, userId: string) {
+  async assign(
+    tenantId: string,
+    conversationId: string,
+    userId?: string | null,
+  ) {
     await this.ensureConversation(tenantId, conversationId);
+    const normalizedUserId = String(userId || '').trim();
     await this.dataSource.getRepository(ConversationOrmEntity).update(
       { id: conversationId, tenantId },
-      { assignedUserId: userId },
+      { assignedUserId: normalizedUserId || null },
     );
   }
 
@@ -101,6 +177,27 @@ export class ConversationService {
         tagId: tag.id,
       }),
     );
+  }
+
+  async untag(tenantId: string, conversationId: string, tagName: string) {
+    await this.ensureConversation(tenantId, conversationId);
+    const normalizedTag = String(tagName || '').trim();
+    if (!normalizedTag) {
+      return { ok: true };
+    }
+    const tagRepository = this.dataSource.getRepository(TagOrmEntity);
+    const conversationTagRepository = this.dataSource.getRepository(ConversationTagOrmEntity);
+    const tag = await tagRepository.findOne({
+      where: { tenantId, name: normalizedTag },
+    });
+    if (!tag) {
+      return { ok: true };
+    }
+    await conversationTagRepository.delete({
+      conversationId,
+      tagId: tag.id,
+    });
+    return { ok: true };
   }
 
   async sendMessage(tenantId: string, conversationId: string, text: string) {

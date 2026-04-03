@@ -24,6 +24,7 @@
   - `PATCH /inbox/conversations/:conversationId/status`
   - `POST /inbox/conversations/:conversationId/notes`
   - `POST /inbox/conversations/:conversationId/tags`
+  - `DELETE /inbox/conversations/:conversationId/tags/:tag`
   - `POST /inbox/conversations/:conversationId/messages`
 
 **Env vars:** none module-specific.
@@ -31,6 +32,9 @@
 **Tests:** resolver/service tests.
 
 **Change-log:**
+- 2026-02-16: Added conversation list filters (`search`, `status`, `assignedUserId`, `tag`) with contact/assignee metadata for inbox productivity views.
+- 2026-02-16: Added tag removal endpoint and `untag()` workflow to support full tag lifecycle operations.
+- 2026-02-16: Added inbox service unit tests for filtered list mapping and tag deletion behavior.
 - 2026-02-15: Added REST conversation list endpoint for BFF integration.
 - 2026-02-15: Replaced conversation/note/tag persistence with TypeORM repositories.
 - 2026-02-15: Added tenant-safe conversation mutation REST endpoints for assignment, status, note, tag, and outbound send.

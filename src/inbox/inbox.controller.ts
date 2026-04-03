@@ -9,7 +9,19 @@
  * - Read listConversations first.
  */
 
-import { Body, Controller, Get, Headers, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { RestAuthGuard } from '../core/guards/rest-auth.guard';
 import { RestTenantGuard } from '../core/guards/rest-tenant.guard';
@@ -42,13 +54,22 @@ export class InboxController {
   async listConversations(
     @Req() request: RequestWithTenant,
     @Headers('x-tenant-id') tenantHeader?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('assignedUserId') assignedUserId?: string,
+    @Query('tag') tag?: string,
   ) {
     const tenantId = this.resolveTenantId(request, tenantHeader);
     if (!tenantId) {
       return { data: [] };
     }
 
-    const data = await this.conversationService.listConversations(tenantId);
+    const data = await this.conversationService.listConversations(tenantId, {
+      search,
+      status: status as ConversationStatus | undefined,
+      assignedUserId,
+      tag,
+    });
     return { data };
   }
 
@@ -121,6 +142,22 @@ export class InboxController {
   ) {
     const tenantId = this.resolveTenantId(request, tenantHeader);
     await this.conversationService.tag(tenantId, conversationId, body.tag);
+    return { ok: true };
+  }
+
+  @Delete('conversations/:conversationId/tags/:tag')
+  async removeTag(
+    @Req() request: RequestWithTenant,
+    @Param('conversationId') conversationId: string,
+    @Param('tag') tag: string,
+    @Headers('x-tenant-id') tenantHeader?: string,
+  ) {
+    const tenantId = this.resolveTenantId(request, tenantHeader);
+    await this.conversationService.untag(
+      tenantId,
+      conversationId,
+      decodeURIComponent(tag),
+    );
     return { ok: true };
   }
 
