@@ -6,7 +6,7 @@
  * created: 2026-02-15
  */
 
-import { Args, Context, Field, Mutation, ObjectType, Query, Resolver } from '@nestjs/graphql';
+import { Args, Context, Field, Int, Mutation, ObjectType, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../core/guards/gql-auth.guard';
 import { TenantGuard } from '../core/guards/tenant.guard';
@@ -28,6 +28,45 @@ class AutomationListItem {
 
   @Field({ nullable: true })
   createdAt?: string | null;
+
+  @Field({ nullable: true })
+  definitionJson?: string | null;
+
+  @Field(() => Int)
+  stepsCount: number;
+
+  @Field(() => Int)
+  conditionsCount: number;
+}
+
+@ObjectType()
+class AutomationExecutionLogItem {
+  @Field()
+  id: string;
+
+  @Field({ nullable: true })
+  automationId?: string | null;
+
+  @Field()
+  automationType: string;
+
+  @Field()
+  triggerSource: string;
+
+  @Field()
+  status: string;
+
+  @Field({ nullable: true })
+  recipient?: string | null;
+
+  @Field({ nullable: true })
+  messagePreview?: string | null;
+
+  @Field({ nullable: true })
+  detailsJson?: string | null;
+
+  @Field({ nullable: true })
+  createdAt?: string | null;
 }
 
 @Resolver(() => AutomationListItem)
@@ -38,6 +77,17 @@ export class AutomationsResolver {
   @Query(() => [AutomationListItem])
   async automations(@Context() context: { tenant: { id: string } }) {
     return this.automationsService.listAutomations(context?.tenant?.id);
+  }
+
+  @Query(() => [AutomationExecutionLogItem])
+  async automationExecutionLogs(
+    @Args('automationId', { nullable: true }) automationId: string | null,
+    @Context() context: { tenant: { id: string } },
+  ) {
+    return this.automationsService.listExecutionLogs(
+      context?.tenant?.id,
+      automationId || undefined,
+    );
   }
 
   @Mutation(() => AutomationListItem)
