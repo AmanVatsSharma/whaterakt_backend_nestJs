@@ -1,11 +1,12 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { MetricsController } from './metrics.controller';
 import { MetricsService } from './metrics.service';
+import { MetricsBearerGuard } from '../core/guards/metrics-bearer.guard';
 import { Request, Response, NextFunction } from 'express';
 
 @Module({
   controllers: [MetricsController],
-  providers: [MetricsService],
+  providers: [MetricsService, MetricsBearerGuard],
   exports: [MetricsService],
 })
 export class MetricsModule implements NestModule {

@@ -24,6 +24,12 @@ export class MetricsService implements OnModuleInit {
     labelNames: ['tenantId']
   });
 
+  private readonly rateLimitDegradedCounter = new Counter({
+    name: 'rate_limit_guard_degraded_total',
+    help: 'Rate limit guard could not enforce (Redis down or error) while fail-closed mode is on',
+    labelNames: ['reason']
+  });
+
 
   private readonly dualWriteFailureCounter = new Counter({
     name: 'dual_write_failures_total',
@@ -74,6 +80,7 @@ export class MetricsService implements OnModuleInit {
     this.registry.registerMetric(this.tenantMessagesCounter);
     this.registry.registerMetric(this.campaignDeliveryCounter);
     this.registry.registerMetric(this.rateLimitBlocksCounter);
+    this.registry.registerMetric(this.rateLimitDegradedCounter);
     this.registry.registerMetric(this.authEventsCounter);
     this.registry.registerMetric(this.dualWriteFailureCounter);
     this.registry.registerMetric(this.whatsappWebhookEventsCounter);
@@ -112,6 +119,10 @@ export class MetricsService implements OnModuleInit {
     this.rateLimitBlocksCounter.inc({ tenantId });
   }
 
+  incrementRateLimitGuardDegraded(reason: 'redis_unavailable' | 'redis_error') {
+    this.rateLimitDegradedCounter.inc({ reason });
+  }
+
   incrementAuthEvent(
     event:
       | 'register'
@@ -128,7 +139,14 @@ export class MetricsService implements OnModuleInit {
     this.dualWriteFailureCounter.inc({ entity });
   }
 
-  incrementWhatsAppWebhookEvent(result: 'accepted' | 'invalid_signature' | 'failed') {
+  incrementWhatsAppWebhookEvent(
+    result:
+      | 'accepted'
+      | 'invalid_signature'
+      | 'failed'
+      | 'rejected_unverified'
+      | 'rejected_misconfigured',
+  ) {
     this.whatsappWebhookEventsCounter.inc({ result });
   }
 
