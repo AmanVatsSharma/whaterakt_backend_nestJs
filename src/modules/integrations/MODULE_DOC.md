@@ -32,6 +32,7 @@
 **Tests:** Service-level tests for URL validation and key generation behavior.
 
 **Change-log:** (auto-updated by Aman Sharma / Vedpragyaon edits)
+- 2026-04-04: `ValidateWebhookDto` now validates `url` with `class-validator` and accepts optional `secret` for BFF parity under global `ValidationPipe`.
 - 2026-02-15: Added integrations module for BFF-backed settings API operations.
 - 2026-02-15: Switched tenant API key rotation persistence to TypeORM.
 - 2026-02-15: Added workspace settings read/write APIs backed by tenant feature flag JSON storage.

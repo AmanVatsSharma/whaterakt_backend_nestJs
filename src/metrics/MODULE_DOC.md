@@ -16,11 +16,12 @@
 **APIs:**
 - REST metrics endpoint for scraping.
 
-**Env vars:** none module-specific.
+**Env vars:** Optional `METRICS_BEARER_TOKEN` — when set, `GET /metrics` requires `Authorization: Bearer <token>`.
 
 **Tests:** metrics service increments/counters assertions.
 
 **Change-log:**
+- 2026-04-04: Optional bearer protection via `METRICS_BEARER_TOKEN` and `MetricsBearerGuard`.
 - 2026-02-15: Added module docs.
 - 2026-02-15: Added WhatsApp webhook outcome counters, outbound send failure counters, and queue-depth gauges.
 

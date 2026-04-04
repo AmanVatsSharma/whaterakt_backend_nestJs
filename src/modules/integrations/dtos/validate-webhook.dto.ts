@@ -3,13 +3,19 @@
  * Module: integrations
  * Purpose: DTO for webhook validation requests.
  * Author: Aman Sharma / Vedpragya/ Codex
- * Last-updated: 2026-02-15
+ * Last-updated: 2026-04-04
  * Notes:
- * - DTO is intentionally minimal for BFF compatibility.
- * - Extend this with class-validator constraints as needed.
+ * - `secret` is accepted for BFF parity; validation is URL-only today.
+ * - `require_tld: false` allows localhost and internal hostnames in dev.
  */
 
-export class ValidateWebhookDto {
-  url!: string;
-}
+import { IsOptional, IsString, IsUrl } from 'class-validator';
 
+export class ValidateWebhookDto {
+  @IsUrl({ require_tld: false })
+  url!: string;
+
+  @IsOptional()
+  @IsString()
+  secret?: string;
+}
