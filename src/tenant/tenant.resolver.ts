@@ -5,13 +5,15 @@ import { Logger, UseGuards } from '@nestjs/common';
 import { CreateTenantInput } from './dto/create-tenant.input';
 import { RbacGuard } from '../rbac/rbac.guard';
 import { RequirePermissions } from '../rbac/rbac.decorator';
+import { GqlAuthGuard } from '../core/guards/gql-auth.guard';
+import { TenantGuard } from '../core/guards/tenant.guard';
 
 @Resolver(() => Tenant)
+@UseGuards(GqlAuthGuard, TenantGuard, RbacGuard)
 export class TenantResolver {
   private readonly logger = new Logger(TenantResolver.name);
   constructor(private readonly tenantService: TenantService) {}
 
-  @UseGuards(RbacGuard)
   @RequirePermissions({ resource: 'tenant', action: 'manage' })
   @Mutation(() => Tenant)
   async createTenant(@Args('input') input: CreateTenantInput) {
@@ -19,7 +21,6 @@ export class TenantResolver {
     return this.tenantService.createTenant(input);
   }
 
-  @UseGuards(RbacGuard)
   @RequirePermissions({ resource: 'tenant', action: 'manage' })
   @Query(() => Tenant)
   async tenant(@Args('id') id: string) {
