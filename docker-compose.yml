@@ -1,5 +1,9 @@
 version: '3.9'
 
+# Full stack: Postgres, Redis, API, worker, Next.js BFF.
+# API: http://localhost:3000  |  Web (Next): http://localhost:3001
+# Set WHATSAPP_* for real Meta traffic; template sync uses Graph API (same as send path).
+
 services:
   api:
     build:
@@ -10,12 +14,16 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://postgres:postgres@db:5432/app
       JWT_SECRET: ${JWT_SECRET:-change-me}
-      WHATSAPP_API_URL: ${WHATSAPP_API_URL:-http://mock-whatsapp:4000/send}
-      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-dev}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-compose-local-wa-token-not-for-real-api}
+      WHATSAPP_GRAPH_BASE: ${WHATSAPP_GRAPH_BASE:-https://graph.facebook.com}
+      WHATSAPP_GRAPH_VERSION: ${WHATSAPP_GRAPH_VERSION:-v20.0}
+      WHATSAPP_DEFAULT_PHONE_NUMBER_ID: ${WHATSAPP_DEFAULT_PHONE_NUMBER_ID:-111}
       WHATSAPP_TENANT_PHONE_MAP: ${WHATSAPP_TENANT_PHONE_MAP:-{"111":"tenant-1"}}
+      # Optional: non-Graph mock that implements GET .../message_templates
+      WHATSAPP_API_URL: ${WHATSAPP_API_URL:-}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000,http://localhost:3001,http://127.0.0.1:3001
     ports:
       - "3000:3000"
     depends_on:
@@ -26,6 +34,20 @@ services:
     restart: unless-stopped
     command: sh -c "node dist/main.js"
 
+  web:
+    build:
+      context: ../whaterakt_frontend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      BACKEND_API_URL: http://api:3000
+    ports:
+      - "3001:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
   worker:
     build:
       context: .
@@ -33,11 +55,15 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://postgres:postgres@db:5432/app
+      TYPEORM_MIGRATIONS_RUN: "false"
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      WHATSAPP_API_URL: ${WHATSAPP_API_URL:-http://mock-whatsapp:4000/send}
-      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-dev}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-compose-local-wa-token-not-for-real-api}
+      WHATSAPP_GRAPH_BASE: ${WHATSAPP_GRAPH_BASE:-https://graph.facebook.com}
+      WHATSAPP_GRAPH_VERSION: ${WHATSAPP_GRAPH_VERSION:-v20.0}
+      WHATSAPP_DEFAULT_PHONE_NUMBER_ID: ${WHATSAPP_DEFAULT_PHONE_NUMBER_ID:-111}
       WHATSAPP_TENANT_PHONE_MAP: ${WHATSAPP_TENANT_PHONE_MAP:-{"111":"tenant-1"}}
+      WHATSAPP_API_URL: ${WHATSAPP_API_URL:-}
     depends_on:
       db:
         condition: service_healthy
