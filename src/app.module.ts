@@ -27,7 +27,6 @@ import { BullModule } from '@nestjs/bull';
 import { WhatsAppModule } from './whatsapp/whatsapp.module';
 // inbox and automations will be conditionally imported via OPTIONAL_MODULES
 import { Logger } from '@nestjs/common';
-import { InMemoryMessageQueue } from './core/queues/in-memory.queue';
 import { HealthModule } from './health/health.module';
 import { RedisProvider } from './core/cache/redis.provider';
 import { MetricsModule } from './metrics/metrics.module';
@@ -42,6 +41,7 @@ import { IntegrationsModule } from './modules/integrations';
 import { ShopifyIntegrationModule } from './modules/shopify-integration';
 import { TeamOnboardingModule } from './modules/team-onboarding';
 import { WhatsAppOnboardingModule } from './modules/whatsapp-onboarding';
+import { SupportModule } from './support/support.module';
 
 const logger = new Logger('BullModule');
 
@@ -57,25 +57,37 @@ const OPTIONAL_MODULES: any[] = [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    GraphQLModule.forRoot<YogaDriverConfig>({
+    GraphQLModule.forRootAsync<YogaDriverConfig>({
       driver: YogaDriver,
-      autoSchemaFile: true,
-      context: ({ req }) => ({
-        req,
-        tenant: req.tenant
-      }),
-      subscriptions: {
-        'graphql-ws': {
-          path: '/graphql',
-          onConnect: (context) => ({ ...context }),
-        }
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const isProd = config.get<string>('NODE_ENV') === 'production';
+        const graphiqlEnabled = config.get<string>('GRAPHQL_IDE_ENABLED') === 'true';
+        const graphiql =
+          !isProd || graphiqlEnabled
+            ? {
+                title: 'WhatsApp Marketing API Playground',
+                headers: JSON.stringify({
+                  Authorization: 'Bearer <paste-jwt>',
+                  'X-Tenant-Id': '<tenant-uuid>',
+                }),
+              }
+            : false;
+        return {
+          autoSchemaFile: true,
+          context: ({ req }) => ({
+            req,
+            tenant: req.tenant,
+          }),
+          subscriptions: {
+            'graphql-ws': {
+              path: '/graphql',
+              onConnect: (context: Record<string, unknown>) => ({ ...context }),
+            },
+          },
+          graphiql,
+        };
       },
-      graphiql: {
-        title: 'WhatsApp Marketing API Playground',
-        headers: JSON.stringify({
-          'X-API-KEY': 'development',
-        }),
-      }
     }),
     BullModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
@@ -104,14 +116,11 @@ const OPTIONAL_MODULES: any[] = [
     ShopifyIntegrationModule,
     TeamOnboardingModule,
     WhatsAppOnboardingModule,
+    SupportModule,
     HttpModule,
     ...OPTIONAL_MODULES,
   ],
-  providers: [
-    InMemoryMessageQueue,
-    RedisProvider,
-    AIService,
-  ],
+  providers: [RedisProvider, AIService],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
@@ -130,6 +139,8 @@ export class AppModule {
         { path: 'shopify/webhook/customers', method: RequestMethod.ALL },
         { path: 'shopify/webhook/products', method: RequestMethod.ALL },
         { path: 'health', method: RequestMethod.ALL },
+        { path: 'health/live', method: RequestMethod.ALL },
+        { path: 'health/ready', method: RequestMethod.ALL },
         { path: 'metrics', method: RequestMethod.ALL },
       )
       .forRoutes('*');

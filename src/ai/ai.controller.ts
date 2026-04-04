@@ -3,17 +3,20 @@
  * Module: ai
  * Purpose: REST adapters for AI assistance consumed by frontend BFF.
  * Author: Aman Sharma / Vedpragya/ Codex
- * Last-updated: 2026-02-15
+ * Last-updated: 2026-04-04
  * Notes:
- * - Keeps BFF contracts stable while backend logic evolves.
+ * - Requires JWT + tenant binding (same as other REST surfaces).
  * - Read suggestReply and generateCampaignCopy first.
  */
 
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { AIService } from './ai.service';
+import { RestAuthGuard } from '../core/guards/rest-auth.guard';
+import { RestTenantGuard } from '../core/guards/rest-tenant.guard';
 
 interface ReplyBody {
   text?: string;
+  conversationId?: string;
 }
 
 interface GenerateBody {
@@ -28,13 +31,15 @@ interface SummarizeBody {
 }
 
 @Controller('ai')
+@UseGuards(RestAuthGuard, RestTenantGuard)
 export class AiController {
   constructor(private readonly aiService: AIService) {}
 
   @Post('reply')
   async suggestReply(@Body() body: ReplyBody) {
     const suggestion = await this.aiService.generateReplySuggestion(
-      body?.text || ''
+      body?.text || '',
+      body?.conversationId,
     );
     return { suggestion };
   }

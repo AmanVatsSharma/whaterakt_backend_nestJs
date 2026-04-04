@@ -57,9 +57,17 @@ async function bootstrap() {
     // Validation across GraphQL/REST inputs
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidUnknownValues: true }));
     
-    // Add Swagger documentation
-    const document = SwaggerModule.createDocument(app, SWAGGER_CONFIG);
-    SwaggerModule.setup('api', app, document);
+    const swaggerEnabled =
+      process.env.NODE_ENV !== 'production' ||
+      process.env.SWAGGER_ENABLED === 'true';
+    if (swaggerEnabled) {
+      const document = SwaggerModule.createDocument(app, SWAGGER_CONFIG);
+      SwaggerModule.setup('api', app, document);
+    } else {
+      bootstrapLogger.log(
+        'Swagger UI disabled in production (set SWAGGER_ENABLED=true to enable)',
+      );
+    }
 
     // Add global filters
     app.useGlobalFilters(new AllExceptionsFilter());
