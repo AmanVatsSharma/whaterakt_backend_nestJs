@@ -79,6 +79,27 @@ export class ShopifyIntegrationService {
     private readonly automationsService: AutomationsService,
   ) {}
 
+  private isProduction(): boolean {
+    return this.config.get<string>('NODE_ENV') === 'production';
+  }
+
+  private verifyShopifyWebhookSignature(
+    signature: string | undefined,
+    payload: Record<string, unknown>,
+    rawBody?: string,
+  ): void {
+    if (this.isProduction()) {
+      if (!signature) {
+        throw new UnauthorizedException('Shopify webhook signature required in production');
+      }
+      this.assertWebhookSignature(signature, rawBody || JSON.stringify(payload));
+      return;
+    }
+    if (signature) {
+      this.assertWebhookSignature(signature, rawBody || JSON.stringify(payload));
+    }
+  }
+
   async connectStore(tenantId: string, input: ConnectShopifyDto) {
     if (!tenantId) {
       throw new BadRequestException('tenantId is required');
@@ -320,9 +341,7 @@ export class ShopifyIntegrationService {
     if (this.isDuplicateWebhook(options?.webhookId)) {
       return { ok: true, deduped: true };
     }
-    if (options?.signature) {
-      this.assertWebhookSignature(options.signature, options.rawBody || JSON.stringify(payload));
-    }
+    this.verifyShopifyWebhookSignature(options?.signature, payload, options?.rawBody);
 
     const resolvedTenantId = tenantId || (await this.resolveTenantFromShop(options?.shopDomain));
     const rawOrderId = String(payload?.id || '');
@@ -377,9 +396,7 @@ export class ShopifyIntegrationService {
     if (this.isDuplicateWebhook(options?.webhookId)) {
       return { ok: true, deduped: true };
     }
-    if (options?.signature) {
-      this.assertWebhookSignature(options.signature, options.rawBody || JSON.stringify(payload));
-    }
+    this.verifyShopifyWebhookSignature(options?.signature, payload, options?.rawBody);
     const resolvedTenantId = tenantId || (await this.resolveTenantFromShop(options?.shopDomain));
     const rawCustomerId = String(payload?.id || '');
     if (!resolvedTenantId || !rawCustomerId) {
@@ -418,9 +435,7 @@ export class ShopifyIntegrationService {
     if (this.isDuplicateWebhook(options?.webhookId)) {
       return { ok: true, deduped: true };
     }
-    if (options?.signature) {
-      this.assertWebhookSignature(options.signature, options.rawBody || JSON.stringify(payload));
-    }
+    this.verifyShopifyWebhookSignature(options?.signature, payload, options?.rawBody);
     const resolvedTenantId = tenantId || (await this.resolveTenantFromShop(options?.shopDomain));
     const rawProductId = String(payload?.id || '');
     if (!resolvedTenantId || !rawProductId) {

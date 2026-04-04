@@ -52,6 +52,7 @@
 - 2026-02-15: Added webhook-id dedupe cache to avoid repeated processing for duplicate deliveries.
 - 2026-02-15: Auto-seeded default Shopify event automations during successful store connect.
 - 2026-02-15: Wired Shopify webhook handlers to trigger commerce journeys through automations service.
+- 2026-04-04: Production webhooks require `x-shopify-hmac-sha256` and valid `SHOPIFY_WEBHOOK_SECRET` (unsigned allowed only in non-production).
 - 2026-02-15: Extended Shopify status payload with enabled commerce journey count.
 - 2026-02-16: Added REST auth + tenant guard + RBAC protection for connect/sync/status and oauth start endpoints.
 

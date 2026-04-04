@@ -15,6 +15,7 @@ const rbacServiceMock = {
 const createExecutionContext = () =>
   ({
     getHandler: jest.fn(),
+    getType: () => 'graphql' as const,
     switchToHttp: () => ({ getRequest: () => ({}) }),
   } as any);
 
