@@ -9,7 +9,7 @@
 * - Uses TypeORM repositories for all persistence operations.
 */
 import { Body, Controller, Get, Headers, Logger, Post, Query, Req } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { Request } from 'express';
 import * as bcrypt from 'bcryptjs';
@@ -29,7 +29,6 @@ import { MetricsService } from '../metrics/metrics.service';
 import { WhatsAppOnboardingService } from '../modules/whatsapp-onboarding';
 
 @ApiTags('WhatsApp')
-@ApiSecurity('TenantAuth')
 @Controller('webhooks/whatsapp')
 export class WhatsAppWebhookController {
   private readonly logger = new Logger(WhatsAppWebhookController.name);
@@ -69,6 +68,17 @@ export class WhatsAppWebhookController {
       this.logger.error(`Failed parsing WHATSAPP_TENANT_PHONE_MAP: ${message}`);
       return undefined;
     }
+  }
+
+  private isProductionWebhookStrict(): boolean {
+    return process.env.NODE_ENV === 'production';
+  }
+
+  private logWebhookReceipt(signature: string | undefined, entryCount: number) {
+    const preview = this.isProductionWebhookStrict()
+      ? `entries=${entryCount} signaturePresent=${Boolean(signature)}`
+      : `entries=${entryCount}`;
+    this.logger.log(`WhatsApp webhook received (${preview})`);
   }
 
   private async ensureSystemUserId(tenantId?: string): Promise<string | undefined> {
@@ -114,6 +124,11 @@ export class WhatsAppWebhookController {
     @Query('hub.challenge') challenge?: string,
   ) {
     const expected = process.env.WHATSAPP_VERIFY_TOKEN;
+    if (this.isProductionWebhookStrict() && !expected) {
+      this.logger.error('WHATSAPP_VERIFY_TOKEN is required in production for webhook verification');
+      this.metrics.incrementWhatsAppWebhookEvent('rejected_misconfigured');
+      return 'Forbidden';
+    }
     if (mode === 'subscribe' && token && expected && token === expected) {
       this.logger.log('Webhook verified successfully');
       return challenge ?? 'OK';
@@ -137,19 +152,34 @@ export class WhatsAppWebhookController {
       const consentLogRepository = this.dataSource.getRepository(ConsentLogOrmEntity);
 
       const secret = process.env.WHATSAPP_APP_SECRET;
+      const strict = this.isProductionWebhookStrict();
+
+      if (strict) {
+        if (!secret) {
+          this.logger.error('WHATSAPP_APP_SECRET is required in production to accept webhooks');
+          this.metrics.incrementWhatsAppWebhookEvent('rejected_misconfigured');
+          return { ok: false };
+        }
+        if (!signature) {
+          this.logger.warn('Missing x-hub-signature-256 in production');
+          this.metrics.incrementWhatsAppWebhookEvent('rejected_unverified');
+          return { ok: false };
+        }
+      }
+
       if (secret && signature) {
         const raw = req?.rawBody ?? JSON.stringify(body);
         const hmac = crypto.createHmac('sha256', secret).update(raw, 'utf8').digest('hex');
-        const expected = `sha256=${hmac}`;
-        if (expected !== signature) {
+        const expectedSig = `sha256=${hmac}`;
+        if (expectedSig !== signature) {
           this.logger.warn('Invalid webhook signature');
           this.metrics.incrementWhatsAppWebhookEvent('invalid_signature');
           return { ok: false };
         }
       }
 
-      this.logger.log(`Received WhatsApp webhook: ${JSON.stringify({ signature, body })}`);
       const entries = body?.entry ?? [];
+      this.logWebhookReceipt(signature, Array.isArray(entries) ? entries.length : 0);
       for (const entry of entries) {
         const changes = entry?.changes ?? [];
         for (const change of changes) {

@@ -31,4 +31,5 @@
 - 2026-02-15: Added onboarding activation gate before outbound sends (ACTIVE + webhook-verified channels only).
 - 2026-02-15: Switched tenant phone number mapping to DB-first lookup with env fallback for emergency overrides.
 - 2026-02-15: Added queue-depth, webhook-outcome, and send-failure metrics for beta operations observability.
+- 2026-04-04: Production webhook hardening (required secret + signature, stricter GET verify), reduced payload logging, expanded webhook metrics.
 
