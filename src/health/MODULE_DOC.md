@@ -25,6 +25,7 @@
 **Tests:** health probe smoke tests.
 
 **Change-log:**
+- 2026-04-04: Added `GET /health/live` (always 200); readiness checks on `GET /health` and `GET /health/ready` return HTTP 503 when a dependency is down.
 - 2026-02-15: Added module docs.
 - 2026-02-15: Replaced legacy ORM health probe with TypeORM and removed Terminus dependency.
 
