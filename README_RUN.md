@@ -15,7 +15,7 @@ How to run (MVP)
 Endpoints
 - Swagger: http://localhost:${PORT:-3000}/api
 - GraphQL Yoga: http://localhost:${PORT:-3000}/graphql (GraphiQL enabled)
-- Health (HTTP): GET /health
+- Health (HTTP): GET /health/live (liveness), GET /health/ready or GET /health (readiness; 503 if unhealthy)
 - Metrics (Prometheus): GET /metrics
 
 Database (dev)
