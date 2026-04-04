@@ -3,6 +3,7 @@ import { TemplateService } from './template.service';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
+import { WhatsAppOnboardingService } from '../modules/whatsapp-onboarding/services/whatsapp-onboarding.service';
 
 describe('TemplateService', () => {
   let service: TemplateService;
@@ -20,6 +21,12 @@ describe('TemplateService', () => {
       providers: [
         TemplateService,
         { provide: ConfigService, useValue: { get: jest.fn(() => undefined) } },
+        {
+          provide: WhatsAppOnboardingService,
+          useValue: {
+            resolvePhoneNumberIdByTenant: jest.fn(async () => 'phone-1'),
+          },
+        },
         {
           provide: DataSource,
           useValue: {

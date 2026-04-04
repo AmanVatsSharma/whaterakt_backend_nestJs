@@ -13,9 +13,10 @@ import { TemplateResolver } from './template.resolver';
 import { TemplateService } from './template.service';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
+import { WhatsAppOnboardingModule } from '../modules/whatsapp-onboarding/whatsapp-onboarding.module';
 
 @Module({
-  imports: [HttpModule, ConfigModule],
+  imports: [HttpModule, ConfigModule, WhatsAppOnboardingModule],
   providers: [TemplateResolver, TemplateService],
   exports: [TemplateService],
 })

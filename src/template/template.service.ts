@@ -1,13 +1,13 @@
 /**
-* File: src/template/template.service.ts
-* Module: template
-* Purpose: Syncs approved WhatsApp templates into local storage.
-* Author: Aman Sharma / Vedpragya/ Codex
-* Last-updated: 2026-02-15
-* Notes:
-* - Uses TypeORM repository upsert semantics via find/save.
-* - Stores full provider payload in content for troubleshooting.
-*/
+ * File: src/template/template.service.ts
+ * Module: template
+ * Purpose: Syncs approved WhatsApp templates into local storage.
+ * Author: Aman Sharma / Vedpragya/ Codex
+ * Last-updated: 2026-04-04
+ * Notes:
+ * - Template list URL matches Graph send path: {graph}/{version}/{phoneNumberId}/message_templates.
+ * - Optional WHATSAPP_API_URL (non-Graph) for local mocks implementing /message_templates.
+ */
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
@@ -16,6 +16,7 @@ import { randomUUID } from 'crypto';
 import { firstValueFrom } from 'rxjs';
 import { DataSource } from 'typeorm';
 import { TemplateCategory, TemplateOrmEntity, TemplateStatus } from '../database/entities/template.entity';
+import { WhatsAppOnboardingService } from '../modules/whatsapp-onboarding/services/whatsapp-onboarding.service';
 
 type CreateTemplatePayload = {
   name: string;
@@ -39,13 +40,61 @@ export class TemplateService {
     private readonly http: HttpService,
     private readonly config: ConfigService,
     @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly onboardingService: WhatsAppOnboardingService,
   ) {}
+
+  /**
+   * Resolves the message_templates list URL (Graph API or legacy mock base).
+   */
+  private async resolveMessageTemplatesListUrl(
+    tenantId: string,
+  ): Promise<string | null> {
+    const legacy = this.config.get<string>('WHATSAPP_API_URL')?.trim();
+    if (legacy && !legacy.includes('graph.facebook.com')) {
+      const base = legacy.replace(/\/messages$/, '').replace(/\/send$/, '');
+      return `${base}/message_templates`;
+    }
+
+    const graphBase =
+      this.config.get<string>('WHATSAPP_GRAPH_BASE') ||
+      'https://graph.facebook.com';
+    const graphVersion =
+      this.config.get<string>('WHATSAPP_GRAPH_VERSION') || 'v20.0';
+    let phoneNumberId =
+      (await this.onboardingService.resolvePhoneNumberIdByTenant(tenantId)) ||
+      this.config.get<string>('WHATSAPP_DEFAULT_PHONE_NUMBER_ID');
+
+    if (!phoneNumberId) {
+      try {
+        const mapRaw = process.env.WHATSAPP_TENANT_PHONE_MAP;
+        if (tenantId && mapRaw) {
+          const map = JSON.parse(mapRaw) as Record<string, string>;
+          phoneNumberId = Object.entries(map).find(
+            ([, t]) => t === tenantId,
+          )?.[0];
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    if (!phoneNumberId) {
+      this.logger.warn(
+        'Template sync: no phone_number_id (onboarding, default, or env map)',
+      );
+      return null;
+    }
+
+    return `${graphBase}/${graphVersion}/${phoneNumberId}/message_templates`;
+  }
 
   async syncTemplates(tenantId: string) {
     try {
-      const apiUrl = this.config.get('WHATSAPP_API_URL');
       const token = this.config.get('WHATSAPP_ACCESS_TOKEN');
-      const url = `${apiUrl?.replace(/\/messages$/, '')}/message_templates`; // crude derive
+      const url = await this.resolveMessageTemplatesListUrl(tenantId);
+      if (!url) {
+        return { count: 0 };
+      }
       const resp = await firstValueFrom(this.http.get(url, {
         headers: { Authorization: `Bearer ${token}` },
         params: { limit: 100 },
