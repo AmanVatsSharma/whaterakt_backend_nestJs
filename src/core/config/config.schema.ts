@@ -1,4 +1,13 @@
-import { IsString, IsNotEmpty, IsUrl, IsNumber, IsOptional, IsEnum, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsUrl,
+  IsNumber,
+  IsOptional,
+  IsEnum,
+  IsArray,
+  ValidateIf,
+} from 'class-validator';
 import { plainToClass } from 'class-transformer';
 import { validateSync } from 'class-validator';
 import { appPinoLogger } from 'src/shared/logger';
@@ -42,9 +51,11 @@ class EnvironmentVariables {
   @IsOptional()
   REDIS_PORT: number = 6379;
 
+  /** Legacy non-Graph mock base (must expose GET .../message_templates). Prefer Graph vars + phone id. */
+  @ValidateIf((_, v) => v != null && String(v).trim() !== '')
   @IsUrl({ require_tld: false })
   @IsOptional()
-  WHATSAPP_API_URL: string = 'http://localhost:3000';
+  WHATSAPP_API_URL?: string;
 
   @IsString()
   @IsOptional()
@@ -178,6 +189,16 @@ class EnvironmentVariables {
   @IsOptional()
   RATE_LIMIT_MAX_REQUESTS: number = 100;
 
+  /** When true, Redis outages surface 503 instead of bypassing rate limits. */
+  @IsString()
+  @IsOptional()
+  RATE_LIMIT_FAIL_CLOSED: string;
+
+  /** Set to "true" to expose GraphiQL in production (default: off in production). */
+  @IsString()
+  @IsOptional()
+  GRAPHQL_IDE_ENABLED: string;
+
   // Queue limiter for messages queue
   @IsNumber()
   @IsOptional()
@@ -191,6 +212,16 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   CORS_ORIGINS: string;
+
+  /** When set, GET /metrics requires Authorization: Bearer <token>. */
+  @IsString()
+  @IsOptional()
+  METRICS_BEARER_TOKEN?: string;
+
+  /** Set to "true" to mount Swagger UI when NODE_ENV=production. */
+  @IsString()
+  @IsOptional()
+  SWAGGER_ENABLED?: string;
 
   // Feature flags
   @IsString()
@@ -224,6 +255,28 @@ class EnvironmentVariables {
   RBAC_CACHE_TTL_MS: number = 15000;
 }
 
+const WEAK_JWT_SECRETS = new Set(
+  ['development-secret', 'changeme', 'secret', 'jwt-secret', ''].map((s) => s.toLowerCase()),
+);
+
+const WEAK_WHATSAPP_TOKENS = new Set(['development', 'dev', ''].map((s) => s.toLowerCase()));
+
+function assertProductionSecrets(validated: EnvironmentVariables) {
+  if (validated.NODE_ENV !== Environment.Production) {
+    return;
+  }
+  const jwt = String(validated.JWT_SECRET || '').trim();
+  if (!jwt || WEAK_JWT_SECRETS.has(jwt.toLowerCase())) {
+    throw new Error('JWT_SECRET must be set to a strong non-default value when NODE_ENV=production');
+  }
+  const wa = String(validated.WHATSAPP_ACCESS_TOKEN || '').trim();
+  if (!wa || WEAK_WHATSAPP_TOKENS.has(wa.toLowerCase())) {
+    throw new Error(
+      'WHATSAPP_ACCESS_TOKEN must be set to a non-placeholder value when NODE_ENV=production',
+    );
+  }
+}
+
 export function validateConfig(config: Record<string, unknown>) {
   const validatedConfig = plainToClass(EnvironmentVariables, config, {
     enableImplicitConversion: true,
@@ -240,6 +293,8 @@ export function validateConfig(config: Record<string, unknown>) {
       appPinoLogger.warn({ errors }, 'Config validation warnings (non-fatal in dev)');
     }
   }
+
+  assertProductionSecrets(validatedConfig);
 
   return validatedConfig;
 } 

@@ -10,7 +10,6 @@
 - guards/
 - filters/
 - cache/
-- queues/
 - config/
 - decorators/
 - swagger/
@@ -26,6 +25,7 @@
 **Tests:** guard/filter unit coverage + middleware smoke tests.
 
 **Change-log:**
+- 2026-04-04: Removed unused Bull stub `InMemoryMessageQueue` / dead `queue.provider` (real processing is `WhatsAppProcessor` only).
 - 2026-02-15: Added structured error mapping + logger wiring documentation.
 - 2026-02-15: Tenant middleware now throws structured `AppError` codes instead of raw `Error`.
 - 2026-02-15: Added tenant middleware exclusions for Shopify OAuth callback and webhook paths.

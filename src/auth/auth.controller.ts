@@ -8,9 +8,21 @@
 * - Exposes QR streaming endpoint for MFA enrollment UX.
 * - Delegates all security/business checks to AuthService.
 */
-import { Body, Controller, Get, NotFoundException, Param, Post, Res } from '@nestjs/common';
-import { Response } from 'express';
+import {
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { RestAuthGuard } from '../core/guards/rest-auth.guard';
 import { AuthService } from './auth.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -39,9 +51,24 @@ export class AuthController {
   }
 
   @Get('mfa/:userId/qr')
+  @UseGuards(RestAuthGuard)
   @ApiOperation({ summary: 'Stream MFA QR code for authenticator enrollment' })
   @ApiOkResponse({ description: 'PNG image containing the MFA QR code' })
-  async streamMfaQr(@Param('userId') userId: string, @Res() res: Response) {
+  async streamMfaQr(
+    @Param('userId') userId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const authed = (req as Request & {
+      user?: { userId?: string; sub?: string };
+    }).user;
+    const subject = authed?.userId || authed?.sub;
+    if (!subject || subject !== userId) {
+      throw new ForbiddenException(
+        'Cannot access MFA enrollment for another user',
+      );
+    }
+
     const buffer = await this.authService.getQrCodeForUser(userId);
 
     if (!buffer) {

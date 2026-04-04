@@ -27,6 +27,7 @@
 **Tests:** resolver/service unit tests + MFA integration scenarios.
 
 **Change-log:**
+- 2026-04-04: MFA QR stream (`GET auth/mfa/:userId/qr`) requires JWT and matches authenticated user id (no cross-user enrollment).
 - 2026-02-15: Aligned module documentation with latest MFA + onboarding flow.
 - 2026-02-15: Implemented password reset token request/consume endpoints with Redis and in-memory fallback.
 - 2026-02-15: Hardened `registerAndLogin` with configurable OTP enforcement (`AUTH_SIGNUP_OTP_REQUIRED`, `AUTH_SIGNUP_OTP_CODE`) and timing-safe code comparison.
