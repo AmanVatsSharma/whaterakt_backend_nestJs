@@ -25,9 +25,13 @@ export class AIService {
     @Inject(AI_PROVIDER) private readonly providerCfg: { provider: string; model?: string },
   ) {}
 
-  async generateReplySuggestion(context: string) {
+  async generateReplySuggestion(context: string, conversationId?: string) {
     try {
-      const data = await this.callProviderAPI(context);
+      const enriched =
+        conversationId && String(conversationId).trim()
+          ? `[conversationId=${conversationId}] ${context}`
+          : context;
+      const data = await this.callProviderAPI(enriched);
       const suggestion = data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text || data?.reply || data?.content || '';
       return String(suggestion).trim().slice(0, 160);
     } catch (e: any) {

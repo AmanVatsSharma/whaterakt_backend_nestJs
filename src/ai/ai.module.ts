@@ -5,9 +5,10 @@ import { AiResolver } from './ai.resolver';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AiController } from './ai.controller';
 import { AI_PROVIDER } from './ai.constants';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [HttpModule, ConfigModule],
+  imports: [HttpModule, ConfigModule, AuthModule],
   controllers: [AiController],
   providers: [
     AiResolver,

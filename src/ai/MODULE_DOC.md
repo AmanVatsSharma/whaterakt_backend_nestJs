@@ -23,6 +23,7 @@
 **Tests:** resolver/service unit tests.
 
 **Change-log:**
+- 2026-04-04: `POST /ai/reply` accepts optional `conversationId` and passes context into reply generation.
 - 2026-02-15: Added REST AI endpoints for frontend BFF integration.
 - 2026-02-15: Removed obsolete ORM dependency from AI service surface.
 
