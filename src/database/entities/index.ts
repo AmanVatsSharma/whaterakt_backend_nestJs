@@ -44,6 +44,10 @@ import {
   WhatsAppManagedNumberOrmEntity,
   WhatsAppManagedNumberStatus,
 } from './whatsapp-number.entity';
+import { PermissionEntity } from '../../rbac/entities/permission.entity';
+import { RoleEntity } from '../../rbac/entities/role.entity';
+import { RolePermissionEntity } from '../../rbac/entities/role-permission.entity';
+import { UserRoleEntity } from '../../rbac/entities/user-role.entity';
 
 export const DATABASE_ENTITIES = [
   TenantOrmEntity,
@@ -72,6 +76,10 @@ export const DATABASE_ENTITIES = [
   WhatsAppChannelOrmEntity,
   WhatsAppManagedNumberOrmEntity,
   WhatsAppAssignmentAuditOrmEntity,
+  PermissionEntity,
+  RoleEntity,
+  RolePermissionEntity,
+  UserRoleEntity,
 ] as const;
 
 export {
